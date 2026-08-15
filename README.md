@@ -11,12 +11,12 @@ Real-time screenshot understanding, powered by local OCR, LLM & VLM inference.
 
 ### 🔒 Core Principles
 - **100% Local & Private:** All processing runs entirely on your local machine using local OCR and local AI models via Ollama. No cloud APIs, no external telemetry, and no data ever leaves your computer.
-- **Cheap-First, Vision-Fallback Pipeline:** Fast text extraction via OCR for documents/chats/receipts, with lightweight local Vision-Language Model (VLM) fallback for textless diagrams, photos, and icon-only interfaces.
+- **Cheap-First, Vision-Fallback Pipeline:** Fast text extraction via OCR for documents, chats, and receipts, with a lightweight local Vision-Language Model (VLM) fallback for textless diagrams, photos, and icon-only interfaces.
 - **Safe & Deterministic Renaming:** Native OS collision prevention, length limits, character sanitization, and timestamp preservation.
 
 ---
 
-## 📂 Project Structure (Current Milestone: Phase 0)
+## 📂 Project Structure
 
 ```text
 SnapTitle/
@@ -36,7 +36,7 @@ SnapTitle/
 
 ---
 
-## 🚀 Setup & Environment Verification (Phase 0)
+## 🚀 Setup & Environment Verification
 
 ### 1. Prerequisites
 - **Python 3.10+** (Tested on Python 3.11 & 3.13)
@@ -63,19 +63,18 @@ pip install -r requirements.txt
 ```
 
 ### 3. Verify Environment
-Run the Phase 0 environment verification suite:
+Run the environment verification suite:
 ```bash
 python tests/test_env.py
 ```
 
 ---
 
-## 🗺️ Roadmap & Upcoming Releases
+## 🗺️ What's Coming Next
 
-- [x] **Phase 0 — Setup & Environment:** Configuration auto-detection, Tesseract integration, and Ollama connectivity verification.
-- [ ] **Phase 1 — Core Detection & Renaming:** Real-time watchdog filesystem observer, cross-platform filename sanitizer, atomic moving, and collision detection. *(Coming Next)*
-- [ ] **Phase 2 — OCR + LLM Titling:** Text thresholding, PII credential redaction, and deterministic LLM titling prompt.
-- [ ] **Phase 3 — Vision (VLM) Fallback:** Visual captioning for textless screenshots (diagrams, photos, UI icons) with unified LLM formatting.
-- [ ] **Phase 4 — Non-Blocking Popup UI:** Floating corner card with thumbnail preview, live edit capability, and auto-dismiss countdown timer.
-- [ ] **Phase 5 — Smart Duplicate Resolution:** AI-powered disambiguation to distinguish same-day collisions without plain numeric suffixes.
-- [ ] **Phase 6 — Full-Text Search Index & Polish:** SQLite FTS5 database indexer, search CLI, and instant rename undo utility.
+- **Screenshot Detection & Safe Renaming:** Real-time background file watching, cross-platform filename sanitization, and collision handling.
+- **OCR Text Reading & AI Titling:** Text extraction and descriptive title generation using local LLM.
+- **Vision Model Fallback:** Image captioning for textless screenshots (diagrams, photos, icons).
+- **Interactive Popup Notification:** Floating on-screen card with thumbnail preview, live title editing, and auto-dismiss countdown timer.
+- **Smart Duplicate Resolution:** Contextual disambiguation to distinguish same-day captures without plain number suffixes.
+- **Search Index & History:** SQLite full-text search engine and one-click rename undo utility.
