@@ -1,5 +1,6 @@
 """SnapTitle Search CLI: Fast full-text search across historical screenshots and OCR/VLM content."""
 
+import os
 import sys
 import argparse
 from pathlib import Path
@@ -11,6 +12,16 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from src.database import DatabaseManager
 from config.config import load_config
+
+# Safe ANSI Color Helpers
+USE_COLOR = sys.stdout.isatty() and (os.environ.get("TERM") != "dumb")
+CYAN = "\033[96m" if USE_COLOR else ""
+GREEN = "\033[92m" if USE_COLOR else ""
+YELLOW = "\033[93m" if USE_COLOR else ""
+MAGENTA = "\033[95m" if USE_COLOR else ""
+DIM = "\033[90m" if USE_COLOR else ""
+BOLD = "\033[1m" if USE_COLOR else ""
+RESET = "\033[0m" if USE_COLOR else ""
 
 
 def main():
@@ -35,46 +46,46 @@ def main():
     if args.undo:
         success, msg, current_p, restored_p = db.undo_last_rename()
         if success:
-            print(f"\n[SUCCESS] {msg}")
+            print(f"\n{GREEN}{BOLD}[SUCCESS]{RESET} {msg}")
             if restored_p:
                 print(f"  Restored Path: {restored_p}")
         else:
-            print(f"\n[INFO] {msg}")
+            print(f"\n{YELLOW}[INFO]{RESET} {msg}")
         return
 
     query_str = " ".join(args.query).strip()
     if not query_str:
-        print("Usage: python search.py <search terms>")
+        print(f"{YELLOW}Usage:{RESET} python search.py <search terms>")
         print("Try: python search.py \"npm error\" or python search.py --undo")
         return
 
     print("=" * 70)
-    print(f"  SnapTitle Search: '{query_str}'")
+    print(f"  {BOLD}SnapTitle Search:{RESET} '{CYAN}{query_str}{RESET}'")
     print("=" * 70)
 
     results = db.search(query_str, limit=args.limit)
 
     if not results:
         print(f"No screenshots found matching '{query_str}'.")
-        print("Tip: Try searching for a partial keyword, error code, or subject.")
+        print(f"{DIM}Tip: Try searching for a partial keyword, error code, or subject.{RESET}")
         return
 
-    print(f"Found {len(results)} matching screenshot(s):\n")
+    print(f"Found {GREEN}{BOLD}{len(results)}{RESET} matching screenshot(s):\n")
     for i, r in enumerate(results, 1):
         file_path = Path(r["file_path"])
-        exists_tag = " [EXISTS]" if file_path.exists() else " [MOVED/DELETED]"
-        print(f"[{i}] {r['final_filename']}{exists_tag}")
-        print(f"    Title   : {r['title']}")
-        print(f"    Date    : {r['capture_date']} | Original: {r['original_filename']}")
-        print(f"    Path    : {r['file_path']}")
+        exists_tag = f" {GREEN}[EXISTS]{RESET}" if file_path.exists() else f" {YELLOW}[MOVED/DELETED]{RESET}"
+        print(f"[{BOLD}{i}{RESET}] {CYAN}{BOLD}{r['final_filename']}{RESET}{exists_tag}")
+        print(f"    {BOLD}Title   :{RESET} {r['title']}")
+        print(f"    {BOLD}Date    :{RESET} {GREEN}{r['capture_date']}{RESET} {DIM}| Original: {r['original_filename']}{RESET}")
+        print(f"    {BOLD}Path    :{RESET} {DIM}{r['file_path']}{RESET}")
         
         snippet = r.get("snippet") or r.get("extracted_content")
         if snippet:
             cleaned_snippet = " ".join(snippet.split())
             if len(cleaned_snippet) > 120:
                 cleaned_snippet = cleaned_snippet[:120] + "..."
-            print(f"    Snippet : \"{cleaned_snippet}\"")
-        print("-" * 70)
+            print(f"    {BOLD}Snippet :{RESET} {YELLOW}\"{cleaned_snippet}\"{RESET}")
+        print(f"{DIM}{'-' * 70}{RESET}")
 
 
 if __name__ == "__main__":
