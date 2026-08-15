@@ -55,7 +55,13 @@ class ScreenshotEventHandler(FileSystemEventHandler):
             p_abs = str(path.absolute())
             return p_res in self._processed_files or p_abs in self._processed_files
 
-    def _cleanup_old_cache(self):
+    def get_ignored_count(self) -> int:
+        """Return the number of currently tracked ignored paths in cache."""
+        with self._lock:
+            self._cleanup_old_cache()
+            return len(self._processed_files)
+
+    def _cleanup_old_cache(self) -> None:
         """Purge cache entries older than ignore_cache_ttl."""
         now = time.time()
         expired = [k for k, ts in self._processed_files.items() if now - ts > self.ignore_cache_ttl]
