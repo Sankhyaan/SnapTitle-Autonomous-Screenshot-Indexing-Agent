@@ -13,6 +13,8 @@ Real-time screenshot understanding, powered by local OCR, LLM & VLM inference.
 - **100% Local & Private:** All processing runs entirely on your local machine using local OCR and local AI models via Ollama. No cloud APIs, no external telemetry, and no data ever leaves your computer.
 - **Cheap-First, Vision-Fallback Pipeline:** Fast text extraction via OCR for documents, chats, and receipts, with a lightweight local Vision-Language Model (VLM) fallback for textless diagrams, photos, and icon-only interfaces.
 - **Safe & Deterministic Renaming:** Native OS collision prevention, length limits, character sanitization, and timestamp preservation.
+- **Interactive Popup Notification:** Floating on-screen card with live preview, editable title, and auto-dismiss timer.
+- **Full-Text SQLite Search Index:** Historical logging and keyword search across past screenshots and extracted text.
 
 ---
 
@@ -24,19 +26,38 @@ SnapTitle/
 │   ├── __init__.py
 │   ├── config.py              # Configuration manager & OS screenshot folder auto-detection
 │   └── default_config.yaml    # Application settings (models, timeouts, paths)
-├── data/                      # Local data directory
-├── src/                       # Source modules (detection, AI pipelines, UI, database)
+├── data/                      # Local SQLite database directory
+├── src/
+│   ├── __init__.py            # Package exports
+│   ├── core.py                # Main orchestrator pipeline
+│   ├── database.py            # SQLite storage & FTS5 full-text search index
+│   ├── llm.py                 # Local LLM prompt engineering & title cleaning
+│   ├── naming.py              # Filename sanitization & collision resolution
+│   ├── ocr.py                 # Tesseract OCR text extraction
+│   ├── popup.py               # Floating on-screen notification & editor UI
+│   ├── renamer.py             # Atomic file moving & lock handling
+│   ├── vlm.py                 # Vision model image captioning
+│   └── watcher.py             # Watchdog filesystem observer
 ├── tests/
 │   ├── __init__.py
-│   └── test_env.py            # Environment & dependency verification test suite
-├── .gitignore                 # Git ignore rules for virtualenvs, databases, and artifacts
-├── requirements.txt           # Python dependency definitions
-└── README.md                  # Project documentation
+│   ├── test_env.py
+│   ├── test_detection_and_renaming.py
+│   ├── test_ocr_llm_titling.py
+│   ├── test_vlm_fallback.py
+│   ├── test_popup_ui.py
+│   ├── test_smart_duplicate_resolution.py
+│   └── test_search_and_database.py
+├── .gitignore
+├── requirements.txt
+├── main.py                    # Application entry point
+├── search.py                  # CLI search tool
+├── undo.py                    # Rename undo utility
+└── README.md
 ```
 
 ---
 
-## 🚀 Setup & Environment Verification
+## 🚀 Getting Started
 
 ### 1. Prerequisites
 - **Python 3.10+** (Tested on Python 3.11 & 3.13)
@@ -62,19 +83,43 @@ cd SnapTitle-Autonomous-Screenshot-Indexing-Agent
 pip install -r requirements.txt
 ```
 
-### 3. Verify Environment
-Run the environment verification suite:
+---
+
+## 💻 Usage
+
+### 1. Run Background Automation
 ```bash
-python tests/test_env.py
+python main.py
+```
+Take any screenshot using your standard OS shortcut (`Win + PrtScn`, `Win + Shift + S`, or `Cmd + Shift + 4`). SnapTitle will automatically display the preview card, generate the title, and rename the file.
+
+### 2. Search Past Screenshots
+Search through historical screenshots by keywords, error codes, invoice IDs, or topics:
+```bash
+python search.py "kubernetes crashloop"
+python search.py "billing invoice"
+python search.py "error 404"
+```
+
+### 3. Undo Last Rename
+Revert the most recent rename back to its original filename:
+```bash
+python undo.py
+# or
+python search.py --undo
 ```
 
 ---
 
-## 🗺️ What's Coming Next
+## 🧪 Running Tests
 
-- **Screenshot Detection & Safe Renaming:** Real-time background file watching, cross-platform filename sanitization, and collision handling.
-- **OCR Text Reading & AI Titling:** Text extraction and descriptive title generation using local LLM.
-- **Vision Model Fallback:** Image captioning for textless screenshots (diagrams, photos, icons).
-- **Interactive Popup Notification:** Floating on-screen card with thumbnail preview, live title editing, and auto-dismiss countdown timer.
-- **Smart Duplicate Resolution:** Contextual disambiguation to distinguish same-day captures without plain number suffixes.
-- **Search Index & History:** SQLite full-text search engine and one-click rename undo utility.
+Run the full automated test suite:
+```bash
+python tests/test_env.py
+python tests/test_detection_and_renaming.py
+python tests/test_ocr_llm_titling.py
+python tests/test_vlm_fallback.py
+python tests/test_popup_ui.py
+python tests/test_smart_duplicate_resolution.py
+python tests/test_search_and_database.py
+```
