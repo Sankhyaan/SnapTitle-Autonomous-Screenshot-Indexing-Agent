@@ -1,0 +1,21 @@
+# Core automation & watching
+watchdog>=4.0.0
+
+# OCR & Image Processing
+pytesseract>=0.3.10
+pillow>=10.0.0
+
+# Local AI Models (Ollama API client)
+ollama>=0.3.0
+
+# Configuration & Utilities
+pyyaml>=6.0.1
+
+# GUI Library (Tkinter is standard library builtin; CustomTkinter/PyQt6 optional for enhanced UI)
+customtkinter>=5.2.0
+# PyQt6>=6.6.0 # Alternative UI backend if preferred
+
+# Builtin libraries used:
+# - sqlite3 (built-in)
+# - tkinter (built-in)
+# - os, sys, pathlib, json, logging (built-in)

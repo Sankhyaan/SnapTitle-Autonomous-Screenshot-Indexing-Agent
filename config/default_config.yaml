@@ -1,0 +1,26 @@
+# SnapTitle Default Configuration
+
+# Folder to watch for screenshots (leave blank "" to auto-detect OS default screenshot directory)
+screenshots_dir: ""
+
+# Enable non-blocking on-screen popup notification
+show_popup: true
+
+# Non-blocking popup display duration before auto-saving (seconds)
+popup_duration_seconds: 5
+
+# Local AI Models (Ollama)
+# Lightweight LLM for summarizing extracted OCR text
+llm_model: "llama3.2:3b"
+
+# Vision Language Model (VLM) for screenshots with little/no text (photos, memes, icon-heavy UI)
+vlm_model: "moondream:latest"
+
+# Ollama API Host URL
+ollama_host: "http://127.0.0.1:11434"
+
+# Tesseract executable path (leave blank "" to auto-detect in PATH or standard installation directories)
+tesseract_cmd: ""
+
+# Database storage path for historical title logs and indexing
+database_path: "data/snaptitle.db"

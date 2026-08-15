@@ -1,0 +1,1 @@
+"""SnapTitle tests package."""
