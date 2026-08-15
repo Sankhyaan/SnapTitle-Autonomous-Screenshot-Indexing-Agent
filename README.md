@@ -113,12 +113,15 @@ python search.py --undo
 
 ## 🧪 Running Tests
 
-Run the full automated test suite:
+Run the automated test runner script to verify all modules:
+```bash
+python run_tests.py
+```
+
+Or run individual test suites directly:
 ```bash
 python tests/test_env.py
 python tests/test_detection_and_renaming.py
-python tests/test_ocr_llm_titling.py
-python tests/test_vlm_fallback.py
 python tests/test_popup_ui.py
 python tests/test_smart_duplicate_resolution.py
 python tests/test_search_and_database.py
