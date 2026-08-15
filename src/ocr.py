@@ -1,10 +1,10 @@
-"""OCR extraction and text filtering module using Tesseract."""
+"""OCR extraction, image preprocessing, and text filtering module using Tesseract."""
 
 import re
 import logging
 from pathlib import Path
 from typing import Optional
-from PIL import Image
+from PIL import Image, ImageOps, ImageEnhance
 
 try:
     import pytesseract
@@ -37,11 +37,36 @@ def has_meaningful_text(text: Optional[str], min_chars: int = MIN_MEANINGFUL_TEX
     return len(alphanumeric_chars) >= min_chars
 
 
+def preprocess_image_for_ocr(img: Image.Image) -> Image.Image:
+    """Apply grayscale conversion, auto-contrast, and sharpening to enhance OCR accuracy.
+
+    Args:
+        img: Input PIL Image.
+
+    Returns:
+        Image.Image: Preprocessed PIL Image ready for Tesseract recognition.
+    """
+    try:
+        # Convert to Grayscale
+        gray = img.convert("L")
+        
+        # Auto-contrast normalization
+        contrasted = ImageOps.autocontrast(gray, cutoff=1)
+        
+        # Slight sharpness boost
+        enhancer = ImageEnhance.Sharpness(contrasted)
+        sharpened = enhancer.enhance(1.4)
+        return sharpened
+    except Exception as e:
+        logger.debug(f"Image preprocessing fallback to raw RGB: {e}")
+        return img.convert("RGB") if img.mode != "RGB" else img
+
+
 def extract_text_from_image(
     image_path: Path,
     tesseract_cmd: Optional[str] = None
 ) -> str:
-    """Extract text from an image using Tesseract OCR.
+    """Extract text from an image using Tesseract OCR with automatic image optimization.
 
     Args:
         image_path: Path to the screenshot image file.
@@ -68,12 +93,18 @@ def extract_text_from_image(
 
     try:
         with Image.open(image_path) as img:
-            # Convert palette/RGBA images to RGB for optimal OCR compatibility
-            if img.mode in ("P", "RGBA", "LA"):
-                img = img.convert("RGB")
-
-            extracted = pytesseract.image_to_string(img)
+            # Preprocess image to maximize character clarity for Tesseract
+            processed_img = preprocess_image_for_ocr(img)
+            extracted = pytesseract.image_to_string(processed_img)
             cleaned_text = extracted.strip()
+            
+            # If standard pass yielded no text on converted image, try raw fallback
+            if not has_meaningful_text(cleaned_text):
+                raw_rgb = img.convert("RGB")
+                fallback_extracted = pytesseract.image_to_string(raw_rgb).strip()
+                if has_meaningful_text(fallback_extracted):
+                    cleaned_text = fallback_extracted
+
             logger.debug(f"OCR extracted {len(cleaned_text)} characters from {image_path.name}")
             return cleaned_text
 
