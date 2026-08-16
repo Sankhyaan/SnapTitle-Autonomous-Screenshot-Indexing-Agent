@@ -17,10 +17,48 @@ logger = logging.getLogger("snaptitle.ocr")
 MIN_MEANINGFUL_TEXT_LENGTH = 5
 
 
+def clean_extracted_text(text: Optional[str]) -> str:
+    """Normalize and clean raw OCR text for downstream processing and LLM prompts.
+
+    - Removes non-printable control characters (retains standard newlines and spaces).
+    - Collapses excessive blank lines to at most two newlines.
+    - Normalizes horizontal spaces on individual lines.
+
+    Args:
+        text: Raw OCR extracted text string.
+
+    Returns:
+        str: Cleaned and normalized text string.
+    """
+    if not text:
+        return ""
+
+    # Remove non-printable control characters (ASCII 0-31 except tab, LF, CR)
+    cleaned = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", "", text)
+
+    # Normalize horizontal whitespace per line
+    lines = [re.sub(r"[^\S\r\n]+", " ", line).strip() for line in cleaned.splitlines()]
+
+    # Collapse excessive blank lines
+    result_lines = []
+    blank_count = 0
+    for line in lines:
+        if not line:
+            blank_count += 1
+            if blank_count <= 1:
+                result_lines.append("")
+        else:
+            blank_count = 0
+            result_lines.append(line)
+
+    return "\n".join(result_lines).strip()
+
+
 def has_meaningful_text(text: Optional[str], min_chars: int = MIN_MEANINGFUL_TEXT_LENGTH) -> bool:
     """Check if the extracted OCR text contains meaningful readable characters.
 
     Strips whitespace and non-alphanumeric noise to ensure genuine text content.
+    Filters out noise speckles and single-character repetition.
 
     Args:
         text: Extracted OCR text string.
@@ -34,7 +72,15 @@ def has_meaningful_text(text: Optional[str], min_chars: int = MIN_MEANINGFUL_TEX
 
     # Extract alphanumeric characters to filter out stray OCR speckles/symbols
     alphanumeric_chars = re.findall(r"\w", text)
-    return len(alphanumeric_chars) >= min_chars
+    if len(alphanumeric_chars) < min_chars:
+        return False
+
+    # Reject text if it consists entirely of a single repeated character
+    unique_chars = set(c.lower() for c in alphanumeric_chars)
+    if len(unique_chars) == 1 and len(alphanumeric_chars) > 3:
+        return False
+
+    return True
 
 
 def preprocess_image_for_ocr(img: Image.Image) -> Image.Image:
@@ -105,8 +151,9 @@ def extract_text_from_image(
                 if has_meaningful_text(fallback_extracted):
                     cleaned_text = fallback_extracted
 
-            logger.debug(f"OCR extracted {len(cleaned_text)} characters from {image_path.name}")
-            return cleaned_text
+            final_text = clean_extracted_text(cleaned_text)
+            logger.debug(f"OCR extracted {len(final_text)} characters from {image_path.name}")
+            return final_text
 
     except Exception as err:
         logger.error(f"OCR extraction failed for '{image_path}': {err}", exc_info=True)
