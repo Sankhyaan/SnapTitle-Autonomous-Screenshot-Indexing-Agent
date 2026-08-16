@@ -46,6 +46,11 @@ class DatabaseManager:
                 );
             """)
 
+            # Optimization indices on frequently filtered columns
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_screenshots_date ON screenshots(capture_date);")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_screenshots_reverted ON screenshots(is_reverted);")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_screenshots_created ON screenshots(created_at);")
+
             # FTS5 Virtual Table for full-text search across title, content, and filename
             try:
                 cursor.execute("""
@@ -290,3 +295,57 @@ class DatabaseManager:
             except Exception as e:
                 logger.error(f"Failed to undo rename for '{current_path}': {e}", exc_info=True)
                 return False, f"Failed to undo rename: {e}", current_path, None
+
+    def get_screenshot_count(self) -> int:
+        """Get the total count of active (non-reverted) indexed screenshots.
+
+        Returns:
+            int: Number of active screenshot records in the database.
+        """
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) AS total FROM screenshots WHERE is_reverted = 0;")
+            row = cursor.fetchone()
+            return row["total"] if row else 0
+
+    def get_screenshot_by_id(self, record_id: int) -> Optional[Dict[str, Any]]:
+        """Retrieve a single screenshot record by its primary key ID.
+
+        Args:
+            record_id: Database record ID.
+
+        Returns:
+            Optional[Dict[str, Any]]: Record dictionary if found, else None.
+        """
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT id, original_filename, final_filename, file_path,
+                       title, extracted_content, capture_date, created_at, is_reverted
+                FROM screenshots
+                WHERE id = ?;
+            """, (record_id,))
+            row = cursor.fetchone()
+            return dict(row) if row else None
+
+    def get_screenshots_by_date(self, capture_date: str, limit: int = 50) -> List[Dict[str, Any]]:
+        """Retrieve screenshots matching a specific capture date (YYYY-MM-DD).
+
+        Args:
+            capture_date: Target date string in YYYY-MM-DD format.
+            limit: Maximum records to return.
+
+        Returns:
+            List[Dict[str, Any]]: List of matching screenshot records.
+        """
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT id, original_filename, final_filename, file_path,
+                       title, extracted_content, capture_date, created_at, is_reverted
+                FROM screenshots
+                WHERE capture_date = ? AND is_reverted = 0
+                ORDER BY id DESC
+                LIMIT ?;
+            """, (capture_date.strip(), limit))
+            return [dict(r) for r in cursor.fetchall()]
