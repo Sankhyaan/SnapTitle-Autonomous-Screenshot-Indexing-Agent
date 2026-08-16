@@ -19,6 +19,41 @@ WINDOWS_RESERVED_NAMES: Set[str] = {
 # Windows prohibits: < > : " / \ | ? * and ASCII 0-31
 INVALID_CHARS_REGEX = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
 
+# Date suffix pattern matching _YYYY-MM-DD
+DATE_SUFFIX_REGEX = re.compile(r"_(\d{4}-\d{2}-\d{2})(?:-\d{6}(?:-\d+)?)?$")
+
+
+def parse_filename_date(filename_or_path: Union[str, Path]) -> Optional[str]:
+    """Extract capture date (YYYY-MM-DD) from a managed SnapTitle filename.
+
+    Args:
+        filename_or_path: Filename string or Path object (e.g. 'error-log_2026-08-15.png').
+
+    Returns:
+        Optional[str]: Date string 'YYYY-MM-DD' if found, else None.
+    """
+    path_obj = Path(filename_or_path)
+    stem = path_obj.stem
+    match = DATE_SUFFIX_REGEX.search(stem)
+    if match:
+        return match.group(1)
+    return None
+
+
+def extract_title_stem(filename_or_path: Union[str, Path]) -> str:
+    """Extract the base title slug from a managed SnapTitle filename, removing date suffix.
+
+    Args:
+        filename_or_path: Filename string or Path object (e.g. 'app-error_2026-08-15.png').
+
+    Returns:
+        str: Base title slug (e.g. 'app-error').
+    """
+    path_obj = Path(filename_or_path)
+    stem = path_obj.stem
+    cleaned = DATE_SUFFIX_REGEX.sub("", stem)
+    return cleaned if cleaned else stem
+
 
 def get_file_capture_date(file_path: Path) -> str:
     """Extract the original capture/creation date of a screenshot in YYYY-MM-DD format.
