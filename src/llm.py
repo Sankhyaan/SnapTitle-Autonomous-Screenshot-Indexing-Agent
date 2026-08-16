@@ -26,13 +26,19 @@ PREFIX_PATTERNS = [
     r"^(suggested title:?\s*)",
     r"^(file(name)?:?\s*)",
     r"^(generated title:?\s*)",
+    r"^(new title:?\s*)",
+    r"^(title idea:?\s*)",
+    r"^(?:[\d]+[\.\)]|\*|-|•)\s*",  # List numbering / bullet items e.g. "1. ", "• "
 ]
 
 # Sensitive data detection regexes (for redacting raw text before sending or validating title)
 SENSITIVE_PATTERNS = [
     re.compile(r"\b(?:\d[ -]*?){13,16}\b"),  # Credit card numbers
+    re.compile(r"\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b"),  # JWT Tokens
     re.compile(r"\b[A-Za-z0-9+/]{32,}={0,2}\b"),  # Base64 tokens / API keys
-    re.compile(r"\b(?:password|passwd|secret|api[_-]?key|bearer)\s*[:=]\s*\S+", re.IGNORECASE),
+    re.compile(r"\b(?:password|passwd|secret|api[_-]?key|bearer|auth[_-]?token)\s*[:=]\s*\S+", re.IGNORECASE),
+    re.compile(r"[a-zA-Z0-9_+.-]+:\/\/[^:\s]+:[^@\s]+@[^\s]+"),  # URLs with basic auth credentials
+    re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----"),  # Private keys
 ]
 
 
@@ -59,12 +65,14 @@ def clean_llm_response(raw_response: str, max_words: int = 6) -> str:
     # 3. Strip surrounding quotation marks of all styles
     text = text.strip("'\"“”«»` ")
 
-    # 4. Strip conversational prefixes
-    for pattern in PREFIX_PATTERNS:
-        text = re.sub(pattern, "", text, flags=re.IGNORECASE).strip()
-
-    # Strip quotes again in case prefix was inside quotes
-    text = text.strip("'\"“”«»` ")
+    # 4. Strip conversational prefixes and bullet points iteratively
+    for _ in range(3):
+        prev_text = text
+        for pattern in PREFIX_PATTERNS:
+            text = re.sub(pattern, "", text, flags=re.IGNORECASE).strip()
+        text = text.strip("'\"“”«»` ")
+        if text == prev_text:
+            break
 
     # 5. Remove problematic filesystem characters
     text = re.sub(r'[<>:"/\\|?*]', " ", text)
@@ -79,11 +87,15 @@ def clean_llm_response(raw_response: str, max_words: int = 6) -> str:
         words = words[:max_words]
 
     cleaned_title = " ".join(words).strip()
+
+    # 8. Strip trailing punctuation marks (e.g. trailing '.', ':', '-', ',')
+    cleaned_title = re.sub(r"[\s\.\,\:\;\-\_]+$", "", cleaned_title).strip()
+
     return cleaned_title
 
 
 def redact_sensitive_info(text: str) -> str:
-    """Redact identifiable sensitive information (passwords, tokens, cards) from text.
+    """Redact identifiable sensitive information (passwords, tokens, cards, keys) from text.
 
     Args:
         text: Raw input text.
