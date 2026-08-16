@@ -15,13 +15,26 @@ logger = logging.getLogger("snaptitle.watcher")
 
 # Supported image file extensions for screenshots
 SUPPORTED_IMAGE_EXTENSIONS: Set[str] = {
-    ".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff", ".gif"
+    ".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff", ".tif", ".gif",
+    ".jfif", ".heic", ".heif", ".avif", ".dib"
 }
 
 # Temporary or intermediate file patterns to ignore
 IGNORED_SUFFIXES: Set[str] = {
-    ".tmp", ".crdownload", ".part", ".swp", ".lock"
+    ".tmp", ".crdownload", ".part", ".swp", ".lock", ".temp"
 }
+
+
+def is_supported_image(file_path: Path) -> bool:
+    """Check if the given path has a supported screenshot image extension.
+
+    Args:
+        file_path: File path to inspect.
+
+    Returns:
+        bool: True if extension is in SUPPORTED_IMAGE_EXTENSIONS, False otherwise.
+    """
+    return file_path.suffix.lower() in SUPPORTED_IMAGE_EXTENSIONS
 
 
 class ScreenshotEventHandler(FileSystemEventHandler):
@@ -61,6 +74,11 @@ class ScreenshotEventHandler(FileSystemEventHandler):
             self._cleanup_old_cache()
             return len(self._processed_files)
 
+    def clear_ignored_cache(self) -> None:
+        """Clear all entries from the ignored files cache."""
+        with self._lock:
+            self._processed_files.clear()
+
     def _cleanup_old_cache(self) -> None:
         """Purge cache entries older than ignore_cache_ttl."""
         now = time.time()
@@ -78,7 +96,7 @@ class ScreenshotEventHandler(FileSystemEventHandler):
         if ext in IGNORED_SUFFIXES:
             return False
 
-        if ext not in SUPPORTED_IMAGE_EXTENSIONS:
+        if not is_supported_image(file_path):
             return False
 
         return True
@@ -171,3 +189,7 @@ class ScreenshotWatcher:
     def mark_ignored(self, path: Path):
         """Mark a path to be ignored by this watcher instance."""
         self.handler.mark_as_ignored(path)
+
+    def clear_ignored_cache(self):
+        """Clear the watcher's internal ignored file cache."""
+        self.handler.clear_ignored_cache()
