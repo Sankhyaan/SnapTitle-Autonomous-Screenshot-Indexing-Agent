@@ -172,9 +172,38 @@ class Config:
                 except Exception:
                     pass
 
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert configuration to dictionary for serialization and debugging.
+
+        Returns:
+            Dict[str, Any]: Configuration values as primitive types.
+        """
+        return {
+            "screenshots_dir": str(self.screenshots_dir),
+            "show_popup": self.show_popup,
+            "popup_duration_seconds": self.popup_duration_seconds,
+            "llm_model": self.llm_model,
+            "vlm_model": self.vlm_model,
+            "ollama_host": self.ollama_host,
+            "tesseract_cmd": self.tesseract_cmd,
+            "database_path": str(self.database_path),
+        }
+
+
+def _parse_bool_env(env_val: Optional[str], default: bool) -> bool:
+    """Safely parse boolean environment variable string."""
+    if env_val is None:
+        return default
+    return env_val.strip().lower() in {"1", "true", "yes", "on", "t"}
+
 
 def load_config(config_path: Optional[Union[str, Path]] = None) -> Config:
-    """Load configuration from YAML file, falling back to defaults.
+    """Load configuration from YAML file and environment variables, falling back to defaults.
+
+    Precedence order:
+    1. Environment variables (SNAPTITLE_*)
+    2. YAML configuration file
+    3. Default values
 
     Args:
         config_path: Optional path to config YAML file.
@@ -196,19 +225,39 @@ def load_config(config_path: Optional[Union[str, Path]] = None) -> Config:
         except Exception as e:
             logger.warning(f"Failed to read config file {target_file}: {e}. Using defaults.")
 
-    screenshots_dir_raw = data.get("screenshots_dir")
+    # Screenshot directory: Env var > YAML > OS Auto-detection
+    env_screenshots = os.environ.get("SNAPTITLE_SCREENSHOTS_DIR")
+    screenshots_dir_raw = env_screenshots or data.get("screenshots_dir")
     screenshots_dir = Path(screenshots_dir_raw) if screenshots_dir_raw else get_default_screenshots_dir()
 
-    database_path_raw = data.get("database_path", "data/snaptitle.db")
+    # Database path: Env var > YAML > Default
+    env_db = os.environ.get("SNAPTITLE_DATABASE_PATH")
+    database_path_raw = env_db or data.get("database_path", "data/snaptitle.db")
     database_path = Path(database_path_raw)
+
+    # Popup settings
+    env_popup = os.environ.get("SNAPTITLE_SHOW_POPUP")
+    show_popup = _parse_bool_env(env_popup, bool(data.get("show_popup", True)))
+
+    env_popup_dur = os.environ.get("SNAPTITLE_POPUP_DURATION")
+    popup_duration = int(env_popup_dur) if env_popup_dur and env_popup_dur.isdigit() else int(data.get("popup_duration_seconds", 5))
+
+    # Models & Hosts
+    llm_model = os.environ.get("SNAPTITLE_LLM_MODEL", str(data.get("llm_model", "llama3.2:3b")))
+    vlm_model = os.environ.get("SNAPTITLE_VLM_MODEL", str(data.get("vlm_model", "llava:7b")))
+    ollama_host = os.environ.get("SNAPTITLE_OLLAMA_HOST", str(data.get("ollama_host", "http://127.0.0.1:11434")))
+
+    # Tesseract
+    tesseract_cmd = os.environ.get("SNAPTITLE_TESSERACT_CMD") or data.get("tesseract_cmd") or None
 
     return Config(
         screenshots_dir=screenshots_dir,
-        show_popup=bool(data.get("show_popup", True)),
-        popup_duration_seconds=int(data.get("popup_duration_seconds", 5)),
-        llm_model=str(data.get("llm_model", "llama3.2:3b")),
-        vlm_model=str(data.get("vlm_model", "llava:7b")),
-        ollama_host=str(data.get("ollama_host", "http://127.0.0.1:11434")),
-        tesseract_cmd=data.get("tesseract_cmd") or None,
+        show_popup=show_popup,
+        popup_duration_seconds=popup_duration,
+        llm_model=llm_model,
+        vlm_model=vlm_model,
+        ollama_host=ollama_host,
+        tesseract_cmd=tesseract_cmd,
         database_path=database_path,
     )
+
