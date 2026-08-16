@@ -150,6 +150,28 @@ def test_ollama(config):
         return False
 
 
+import unittest
+
+
+class TestEnvironmentSetup(unittest.TestCase):
+    """Automated unit test suite verifying configuration loading and dependency detection."""
+
+    def test_config_loading(self):
+        """Verify configuration object loads with non-empty defaults."""
+        config = load_config()
+        self.assertIsNotNone(config.screenshots_dir)
+        self.assertIsNotNone(config.database_path)
+        self.assertGreater(config.popup_duration_seconds, 0)
+        self.assertTrue(isinstance(config.to_dict(), dict))
+
+    def test_sample_image_generation(self):
+        """Verify test sample image generation creates a valid image file."""
+        sample_path = PROJECT_ROOT / "tests" / "sample_ocr.png"
+        created = create_sample_image(sample_path)
+        self.assertTrue(created.exists())
+        self.assertGreater(created.stat().st_size, 0)
+
+
 def main():
     print("============================================================")
     print("               SnapTitle Environment Test                   ")

@@ -94,11 +94,13 @@ python main.py
 Take any screenshot using your standard OS shortcut (`Win + PrtScn`, `Win + Shift + S`, or `Cmd + Shift + 4`). SnapTitle will automatically display the preview card, generate the title, and rename the file.
 
 ### 2. Search Past Screenshots
-Search through historical screenshots by keywords, error codes, invoice IDs, or topics:
+Search through historical screenshots by keywords, error codes, invoice IDs, topics, or dates:
 ```bash
 python search.py "kubernetes crashloop"
 python search.py "billing invoice"
-python search.py "error 404"
+python search.py --date 2026-08-15
+python search.py "docker" --json
+python search.py --stats
 ```
 
 ### 3. Undo Last Rename
@@ -108,6 +110,23 @@ python undo.py
 # or
 python search.py --undo
 ```
+
+---
+
+## ⚙️ Configuration & Environment Variables
+
+SnapTitle can be configured via `config/default_config.yaml` or environment variables:
+
+| Variable | Description | Default |
+|---|---|---|
+| `SNAPTITLE_SCREENSHOTS_DIR` | Custom screenshot directory path | OS Auto-detected |
+| `SNAPTITLE_DATABASE_PATH` | SQLite database file location | `data/snaptitle.db` |
+| `SNAPTITLE_LLM_MODEL` | Ollama model identifier for text titling | `llama3.2:3b` |
+| `SNAPTITLE_VLM_MODEL` | Ollama model identifier for vision captioning | `moondream:latest` |
+| `SNAPTITLE_OLLAMA_HOST` | Ollama daemon host URL | `http://127.0.0.1:11434` |
+| `SNAPTITLE_SHOW_POPUP` | Enable/disable desktop popup UI (`1`/`0`) | `1` (Enabled) |
+| `SNAPTITLE_POPUP_DURATION` | Popup countdown timer in seconds | `5` |
+| `SNAPTITLE_TESSERACT_CMD` | Explicit path to Tesseract binary | Auto-detected |
 
 ---
 
