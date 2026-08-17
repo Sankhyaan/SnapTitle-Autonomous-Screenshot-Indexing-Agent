@@ -17,6 +17,8 @@ if str(PROJECT_ROOT) not in sys.path:
 TEST_MODULES = [
     ("Environment & Models", "tests.test_env"),
     ("Detection & Renaming", "tests.test_detection_and_renaming"),
+    ("OCR + LLM Titling", "tests.test_ocr_llm_titling"),
+    ("VLM Fallback", "tests.test_vlm_fallback"),
     ("Popup UI & Notifications", "tests.test_popup_ui"),
     ("Duplicate Resolution", "tests.test_smart_duplicate_resolution"),
     ("SQLite Database & Search", "tests.test_search_and_database"),

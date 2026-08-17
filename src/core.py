@@ -15,7 +15,7 @@ from .naming import (
 from .renamer import safe_rename, rename_with_title
 from .watcher import ScreenshotWatcher
 from .ocr import extract_text_from_image, has_meaningful_text
-from .llm import generate_title_from_text, generate_disambiguated_title
+from .llm import generate_title_from_text, generate_disambiguated_title, clean_llm_response
 from .vlm import generate_caption_from_image
 from .popup import PopupManager
 from .database import DatabaseManager
@@ -111,6 +111,13 @@ class SnapTitleService:
                 )
             except Exception as llm_err:
                 logger.warning(f"LLM call failed on OCR text: {llm_err}")
+
+            # Fallback to OCR text snippet if LLM is offline or returned None
+            if not initial_title and ocr_text:
+                fallback_title = clean_llm_response(ocr_text, max_words=6)
+                if fallback_title:
+                    logger.info(f"LLM unavailable; extracted OCR fallback title: '{fallback_title}'")
+                    initial_title = fallback_title
         else:
             # -------------------------------------------------------------
             # Branch B: No-Text / Sparse Path (VLM Caption -> LLM Title)
@@ -133,6 +140,10 @@ class SnapTitleService:
                         model=self.config.llm_model,
                         host=self.config.ollama_host
                     )
+                    if not initial_title:
+                        fallback_title = clean_llm_response(caption, max_words=6)
+                        if fallback_title:
+                            initial_title = fallback_title
                 else:
                     logger.warning("VLM captioning returned empty.")
 
