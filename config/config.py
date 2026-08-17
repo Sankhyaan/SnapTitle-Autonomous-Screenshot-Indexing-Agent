@@ -10,7 +10,7 @@ import shutil
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional, Dict, Any, Union
+from typing import Optional, Dict, Any, Union, Set
 import yaml
 
 try:
@@ -19,6 +19,31 @@ except ImportError:
     pytesseract = None  # type: ignore
 
 logger = logging.getLogger("snaptitle.config")
+
+
+SUPPORTED_IMAGE_EXTENSIONS: Set[str] = {
+    ".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff", ".tif"
+}
+
+
+def is_supported_image_extension(path_or_ext: Union[str, Path]) -> bool:
+    """Check if a path or file extension belongs to a supported screenshot image format.
+
+    Args:
+        path_or_ext: Path object or extension string (e.g. '.PNG', '.jpg', Path('shot.webp')).
+
+    Returns:
+        bool: True if supported image format, False otherwise.
+    """
+    if not path_or_ext:
+        return False
+    if isinstance(path_or_ext, Path):
+        ext = path_or_ext.suffix
+    else:
+        ext = str(path_or_ext)
+        if not ext.startswith("."):
+            ext = f".{ext}"
+    return ext.lower().strip() in SUPPORTED_IMAGE_EXTENSIONS
 
 
 def get_default_screenshots_dir() -> Path:

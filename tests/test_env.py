@@ -171,6 +171,17 @@ class TestEnvironmentSetup(unittest.TestCase):
         self.assertTrue(created.exists())
         self.assertGreater(created.stat().st_size, 0)
 
+    def test_image_extension_validation(self):
+        """Verify image extension validator matches supported formats in uppercase and lowercase."""
+        from config.config import is_supported_image_extension
+        self.assertTrue(is_supported_image_extension(".png"))
+        self.assertTrue(is_supported_image_extension(".PNG"))
+        self.assertTrue(is_supported_image_extension(".jpg"))
+        self.assertTrue(is_supported_image_extension("JPEG"))
+        self.assertTrue(is_supported_image_extension(Path("screenshot.WEBP")))
+        self.assertFalse(is_supported_image_extension(".pdf"))
+        self.assertFalse(is_supported_image_extension(".txt"))
+
 
 def main():
     print("============================================================")

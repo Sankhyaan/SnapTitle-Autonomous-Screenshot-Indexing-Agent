@@ -100,6 +100,7 @@ python search.py "kubernetes crashloop"
 python search.py "billing invoice"
 python search.py --date 2026-08-15
 python search.py "docker" --json
+python search.py "database" --csv
 python search.py --stats
 ```
 
@@ -128,20 +129,24 @@ SnapTitle can be configured via `config/default_config.yaml` or environment vari
 | `SNAPTITLE_POPUP_DURATION` | Popup countdown timer in seconds | `5` |
 | `SNAPTITLE_TESSERACT_CMD` | Explicit path to Tesseract binary | Auto-detected |
 
+Supported Image Formats: `.png`, `.jpg`, `.jpeg`, `.webp`, `.bmp`, `.tiff`, `.tif` (case-insensitive).
+
 ---
 
 ## 🧪 Running Tests
 
-Run the automated test runner script to verify all modules:
+Run the automated test runner script to verify all 7 project test modules:
 ```bash
 python run_tests.py
 ```
 
-Or run individual test suites directly:
+Or run individual test modules directly:
 ```bash
-python tests/test_env.py
-python tests/test_detection_and_renaming.py
-python tests/test_popup_ui.py
-python tests/test_smart_duplicate_resolution.py
-python tests/test_search_and_database.py
+python -m unittest tests.test_env
+python -m unittest tests.test_detection_and_renaming
+python -m unittest tests.test_ocr_llm_titling
+python -m unittest tests.test_vlm_fallback
+python -m unittest tests.test_popup_ui
+python -m unittest tests.test_smart_duplicate_resolution
+python -m unittest tests.test_search_and_database
 ```
