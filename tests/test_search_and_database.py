@@ -79,6 +79,26 @@ class TestDatabaseAndFTS5Search(unittest.TestCase):
         results_empty = self.db.search("nonexistentterm123")
         self.assertEqual(len(results_empty), 0)
 
+    def test_database_stats_and_filename_lookup(self):
+        """Test database stats summary and filename lookup helper methods."""
+        self.db.log_screenshot(
+            original_filename="Original_Shot.png",
+            final_filename="docker-container-error_2026-08-17.png",
+            file_path=self.temp_dir / "docker-container-error_2026-08-17.png",
+            title="Docker Container Error",
+            extracted_content="Container stopped with exit code 137 OOMKilled",
+            capture_date="2026-08-17"
+        )
+
+        stats = self.db.get_database_stats()
+        self.assertEqual(stats["total"], 1)
+        self.assertEqual(stats["active"], 1)
+        self.assertEqual(stats["reverted"], 0)
+
+        lookup = self.db.get_screenshots_by_filename("docker-container-error_2026-08-17.png")
+        self.assertEqual(len(lookup), 1)
+        self.assertEqual(lookup[0]["title"], "Docker Container Error")
+
     def test_undo_last_rename(self):
         """Test undo_last_rename restores the original filename on disk."""
         orig_file = self.temp_dir / "Screenshot (Original).png"

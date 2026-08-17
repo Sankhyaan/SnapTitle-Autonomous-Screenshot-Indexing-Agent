@@ -2,6 +2,8 @@
 
 import os
 import sys
+import csv
+import io
 import json
 import argparse
 from pathlib import Path
@@ -25,6 +27,24 @@ BOLD = "\033[1m" if USE_COLOR else ""
 RESET = "\033[0m" if USE_COLOR else ""
 
 
+def format_results_as_csv(results: list) -> str:
+    """Format screenshot database results list into a standard CSV string."""
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["id", "original_filename", "final_filename", "title", "capture_date", "file_path", "extracted_content"])
+    for r in results:
+        writer.writerow([
+            r.get("id", ""),
+            r.get("original_filename", ""),
+            r.get("final_filename", ""),
+            r.get("title", ""),
+            r.get("capture_date", ""),
+            r.get("file_path", ""),
+            r.get("extracted_content", "")
+        ])
+    return output.getvalue()
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="SnapTitle Full-Text Screenshot Search",
@@ -35,6 +55,7 @@ def main():
   python search.py "kubernetes crashloop" --limit 10
   python search.py --date 2026-08-15
   python search.py "docker" --json
+  python search.py "database" --csv
   python search.py --stats
   python search.py --undo
         """
@@ -43,6 +64,7 @@ def main():
     parser.add_argument("--limit", type=int, default=15, help="Maximum number of results to display (default: 15)")
     parser.add_argument("--date", type=str, default=None, help="Filter screenshots by capture date (YYYY-MM-DD)")
     parser.add_argument("--json", action="store_true", help="Output results in JSON format")
+    parser.add_argument("--csv", action="store_true", help="Output results in CSV format")
     parser.add_argument("--stats", action="store_true", help="Show total count of indexed screenshots")
     parser.add_argument("--undo", action="store_true", help="Undo the most recent screenshot rename")
 
@@ -51,15 +73,23 @@ def main():
     db = DatabaseManager(config.database_path)
 
     if args.stats:
-        total_count = db.get_screenshot_count()
+        stats = db.get_database_stats()
         if args.json:
-            print(json.dumps({"total_screenshots": total_count, "database_path": str(config.database_path)}, indent=2))
+            print(json.dumps({**stats, "database_path": str(config.database_path)}, indent=2))
+        elif args.csv:
+            output = io.StringIO()
+            writer = csv.writer(output)
+            writer.writerow(["database_path", "total", "active", "reverted"])
+            writer.writerow([str(config.database_path), stats["total"], stats["active"], stats["reverted"]])
+            print(output.getvalue().strip())
         else:
             print("=" * 60)
             print(f"  {BOLD}SnapTitle Database Statistics{RESET}")
             print("=" * 60)
             print(f"  Database Path      : {config.database_path}")
-            print(f"  Indexed Screenshots: {GREEN}{BOLD}{total_count}{RESET}")
+            print(f"  Total Logged       : {stats['total']}")
+            print(f"  Active Screenshots : {GREEN}{BOLD}{stats['active']}{RESET}")
+            print(f"  Reverted Screenshots: {YELLOW}{stats['reverted']}{RESET}")
             print("=" * 60)
         return
 
@@ -88,6 +118,9 @@ def main():
         if args.json:
             print(json.dumps(results, indent=2))
             return
+        if args.csv:
+            print(format_results_as_csv(results).strip())
+            return
 
         print("=" * 70)
         print(f"  {BOLD}SnapTitle Screenshots for Date:{RESET} '{CYAN}{args.date}{RESET}'")
@@ -111,6 +144,8 @@ def main():
     if not query_str:
         if args.json:
             print(json.dumps([]))
+        elif args.csv:
+            print(format_results_as_csv([]).strip())
         else:
             print(f"{YELLOW}Usage:{RESET} python search.py <search terms>")
             print("Try: python search.py \"npm error\", python search.py --date 2026-08-15, or python search.py --undo")
@@ -124,6 +159,9 @@ def main():
 
     if args.json:
         print(json.dumps(results, indent=2))
+        return
+    if args.csv:
+        print(format_results_as_csv(results).strip())
         return
 
     print("=" * 70)
