@@ -143,7 +143,7 @@ class DatabaseManager:
 
         Args:
             query: Search query terms (e.g. 'npm error', 'invoice', 'kubernetes').
-            limit: Maximum number of results to return.
+            limit: Maximum number of results to return (clamped >= 1).
 
         Returns:
             List[Dict[str, Any]]: List of matching records.
@@ -152,6 +152,7 @@ class DatabaseManager:
         if not cleaned_query:
             return []
 
+        limit = max(1, int(limit))
         results: List[Dict[str, Any]] = []
 
         with self._get_connection() as conn:
@@ -226,11 +227,12 @@ class DatabaseManager:
         """Retrieve recent renames from the database.
 
         Args:
-            limit: Number of records to return.
+            limit: Number of records to return (clamped >= 1).
 
         Returns:
             List[Dict[str, Any]]: List of recent screenshot records.
         """
+        limit = max(1, int(limit))
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""
@@ -308,6 +310,30 @@ class DatabaseManager:
             row = cursor.fetchone()
             return row["total"] if row else 0
 
+    def get_database_stats(self) -> Dict[str, int]:
+        """Retrieve total, active, and reverted screenshot counts.
+
+        Returns:
+            Dict[str, int]: Dictionary containing total, active, and reverted counts.
+        """
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT
+                    COUNT(*) AS total,
+                    SUM(CASE WHEN is_reverted = 0 THEN 1 ELSE 0 END) AS active,
+                    SUM(CASE WHEN is_reverted = 1 THEN 1 ELSE 0 END) AS reverted
+                FROM screenshots;
+            """)
+            row = cursor.fetchone()
+            if row:
+                return {
+                    "total": row["total"] or 0,
+                    "active": row["active"] or 0,
+                    "reverted": row["reverted"] or 0
+                }
+            return {"total": 0, "active": 0, "reverted": 0}
+
     def get_screenshot_by_id(self, record_id: int) -> Optional[Dict[str, Any]]:
         """Retrieve a single screenshot record by its primary key ID.
 
@@ -328,16 +354,40 @@ class DatabaseManager:
             row = cursor.fetchone()
             return dict(row) if row else None
 
+    def get_screenshots_by_filename(self, filename: str) -> List[Dict[str, Any]]:
+        """Retrieve screenshot records matching a final or original filename.
+
+        Args:
+            filename: Target filename string.
+
+        Returns:
+            List[Dict[str, Any]]: Matching screenshot records.
+        """
+        target = (filename or "").strip()
+        if not target:
+            return []
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT id, original_filename, final_filename, file_path,
+                       title, extracted_content, capture_date, created_at, is_reverted
+                FROM screenshots
+                WHERE final_filename = ? OR original_filename = ?
+                ORDER BY id DESC;
+            """, (target, target))
+            return [dict(r) for r in cursor.fetchall()]
+
     def get_screenshots_by_date(self, capture_date: str, limit: int = 50) -> List[Dict[str, Any]]:
         """Retrieve screenshots matching a specific capture date (YYYY-MM-DD).
 
         Args:
             capture_date: Target date string in YYYY-MM-DD format.
-            limit: Maximum records to return.
+            limit: Maximum records to return (clamped >= 1).
 
         Returns:
             List[Dict[str, Any]]: List of matching screenshot records.
         """
+        limit = max(1, int(limit))
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""

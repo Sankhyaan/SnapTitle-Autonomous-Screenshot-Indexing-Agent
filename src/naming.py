@@ -23,7 +23,7 @@ INVALID_CHARS_REGEX = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
 DATE_SUFFIX_REGEX = re.compile(r"_(\d{4}-\d{2}-\d{2})(?:-\d{6}(?:-\d+)?)?$")
 
 
-def parse_filename_date(filename_or_path: Union[str, Path]) -> Optional[str]:
+def parse_filename_date(filename_or_path: Optional[Union[str, Path]]) -> Optional[str]:
     """Extract capture date (YYYY-MM-DD) from a managed SnapTitle filename.
 
     Args:
@@ -32,6 +32,8 @@ def parse_filename_date(filename_or_path: Union[str, Path]) -> Optional[str]:
     Returns:
         Optional[str]: Date string 'YYYY-MM-DD' if found, else None.
     """
+    if not filename_or_path:
+        return None
     path_obj = Path(filename_or_path)
     stem = path_obj.stem
     match = DATE_SUFFIX_REGEX.search(stem)
@@ -40,7 +42,7 @@ def parse_filename_date(filename_or_path: Union[str, Path]) -> Optional[str]:
     return None
 
 
-def extract_title_stem(filename_or_path: Union[str, Path]) -> str:
+def extract_title_stem(filename_or_path: Optional[Union[str, Path]]) -> str:
     """Extract the base title slug from a managed SnapTitle filename, removing date suffix.
 
     Args:
@@ -49,6 +51,8 @@ def extract_title_stem(filename_or_path: Union[str, Path]) -> str:
     Returns:
         str: Base title slug (e.g. 'app-error').
     """
+    if not filename_or_path:
+        return ""
     path_obj = Path(filename_or_path)
     stem = path_obj.stem
     cleaned = DATE_SUFFIX_REGEX.sub("", stem)
@@ -117,6 +121,7 @@ def sanitize_title_to_filename(
     Returns:
         str: Safe, sanitized filename with title first, date suffix, and extension.
     """
+    max_stem_length = max(15, int(max_stem_length))
     # 1. Format date suffix (YYYY-MM-DD)
     if isinstance(capture_date, (datetime, date)):
         date_suffix = capture_date.strftime("%Y-%m-%d")
