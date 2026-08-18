@@ -71,10 +71,37 @@ def main():
     parser.add_argument("--undo", action="store_true", help="Undo the most recent screenshot rename")
     parser.add_argument("--backup", type=str, default=None, help="Backup SQLite database to specified destination file path")
     parser.add_argument("--purge", action="store_true", help="Purge soft-deleted (reverted) records from database")
+    parser.add_argument("--check", action="store_true", help="Run system health check on dependencies and database")
 
     args = parser.parse_args()
     config = load_config()
     db = DatabaseManager(config.database_path)
+
+    if args.check:
+        tesseract_ok = config.tesseract_cmd is not None and Path(config.tesseract_cmd).exists()
+        db_ok = config.database_path.exists() or config.database_path.parent.exists()
+        screenshots_dir_ok = config.screenshots_dir.exists()
+        
+        status_report = {
+            "screenshots_dir": {"path": str(config.screenshots_dir), "exists": screenshots_dir_ok},
+            "database": {"path": str(config.database_path), "accessible": db_ok},
+            "tesseract_ocr": {"path": config.tesseract_cmd, "installed": tesseract_ok},
+            "ollama_host": config.ollama_host,
+            "llm_model": config.llm_model,
+            "vlm_model": config.vlm_model,
+        }
+        if args.json:
+            print(json.dumps(status_report, indent=2))
+        else:
+            print("=" * 60)
+            print(f"  {BOLD}SnapTitle System Health Check{RESET}")
+            print("=" * 60)
+            print(f"  Screenshots Directory : {config.screenshots_dir} [{'OK' if screenshots_dir_ok else 'MISSING'}]")
+            print(f"  SQLite Database       : {config.database_path} [{'OK' if db_ok else 'ERROR'}]")
+            print(f"  Tesseract OCR         : {config.tesseract_cmd or 'Not Found'} [{'OK' if tesseract_ok else 'PENDING'}]")
+            print(f"  Ollama Host & Model   : {config.ollama_host} ({config.llm_model})")
+            print("=" * 60)
+        return
 
     if args.backup:
         dest_p = db.backup_database(args.backup)

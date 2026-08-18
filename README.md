@@ -99,9 +99,13 @@ Search through historical screenshots by keywords, error codes, invoice IDs, top
 python search.py "kubernetes crashloop"
 python search.py "billing invoice"
 python search.py --date 2026-08-15
+python search.py --start-date 2026-08-01 --end-date 2026-08-18
 python search.py "docker" --json
 python search.py "database" --csv
 python search.py --stats
+python search.py --check
+python search.py --backup "data/backups/snaptitle_backup.db"
+python search.py --purge
 ```
 
 ### 3. Undo Last Rename
@@ -125,6 +129,8 @@ SnapTitle can be configured via `config/default_config.yaml` or environment vari
 | `SNAPTITLE_LLM_MODEL` | Ollama model identifier for text titling | `llama3.2:3b` |
 | `SNAPTITLE_VLM_MODEL` | Ollama model identifier for vision captioning | `moondream:latest` |
 | `SNAPTITLE_OLLAMA_HOST` | Ollama daemon host URL | `http://127.0.0.1:11434` |
+| `SNAPTITLE_LLM_TIMEOUT` | Ollama LLM request timeout in seconds | `60.0` |
+| `SNAPTITLE_VLM_TIMEOUT` | Ollama VLM request timeout in seconds | `60.0` |
 | `SNAPTITLE_SHOW_POPUP` | Enable/disable desktop popup UI (`1`/`0`) | `1` (Enabled) |
 | `SNAPTITLE_POPUP_DURATION` | Popup countdown timer in seconds | `5` |
 | `SNAPTITLE_TESSERACT_CMD` | Explicit path to Tesseract binary | Auto-detected |
