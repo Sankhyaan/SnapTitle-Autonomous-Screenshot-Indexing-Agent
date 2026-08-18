@@ -133,6 +133,41 @@ class TestDatabaseAndFTS5Search(unittest.TestCase):
         success_2, msg_2, _, _ = self.db.undo_last_rename()
         self.assertFalse(success_2)
 
+    def test_database_backup_and_purge(self):
+        """Test database backup creation and soft-deleted record purging."""
+        self.db.log_screenshot(
+            original_filename="Test_Backup.png",
+            final_filename="test-backup_2026-08-18.png",
+            file_path=self.temp_dir / "test-backup_2026-08-18.png",
+            title="Backup Test",
+            extracted_content="Test data for backup and purge",
+            capture_date="2026-08-18"
+        )
+
+        backup_file = self.temp_dir / "backup" / "snaptitle_backup.db"
+        created_backup = self.db.backup_database(backup_file)
+        self.assertTrue(created_backup.exists())
+        self.assertGreater(created_backup.stat().st_size, 0)
+
+        # Mark record reverted and purge
+        orig_file = self.temp_dir / "reverted.png"
+        orig_file.write_text("data")
+        renamed_file = self.temp_dir / "reverted_renamed.png"
+        shutil.move(orig_file, renamed_file)
+
+        self.db.log_screenshot(
+            original_filename="reverted.png",
+            final_filename="reverted_renamed.png",
+            file_path=renamed_file,
+            title="Reverted Item",
+            extracted_content="Dummy",
+            capture_date="2026-08-18"
+        )
+        self.db.undo_last_rename()
+
+        purged_count = self.db.purge_reverted_records()
+        self.assertGreaterEqual(purged_count, 1)
+
 
 class TestEndToEndPhase6Pipeline(unittest.TestCase):
     """End-to-end watcher test verifying Detection -> AI Titling -> Renaming -> DB Indexing -> Search."""

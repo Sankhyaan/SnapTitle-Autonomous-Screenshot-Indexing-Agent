@@ -67,10 +67,28 @@ def main():
     parser.add_argument("--csv", action="store_true", help="Output results in CSV format")
     parser.add_argument("--stats", action="store_true", help="Show total count of indexed screenshots")
     parser.add_argument("--undo", action="store_true", help="Undo the most recent screenshot rename")
+    parser.add_argument("--backup", type=str, default=None, help="Backup SQLite database to specified destination file path")
+    parser.add_argument("--purge", action="store_true", help="Purge soft-deleted (reverted) records from database")
 
     args = parser.parse_args()
     config = load_config()
     db = DatabaseManager(config.database_path)
+
+    if args.backup:
+        dest_p = db.backup_database(args.backup)
+        if args.json:
+            print(json.dumps({"success": True, "backup_path": str(dest_p.resolve())}))
+        else:
+            print(f"{GREEN}[SUCCESS]{RESET} Database successfully backed up to: {dest_p}")
+        return
+
+    if args.purge:
+        purged_count = db.purge_reverted_records()
+        if args.json:
+            print(json.dumps({"success": True, "purged_count": purged_count}))
+        else:
+            print(f"{GREEN}[SUCCESS]{RESET} Purged {purged_count} soft-deleted record(s) from database.")
+        return
 
     if args.stats:
         stats = db.get_database_stats()

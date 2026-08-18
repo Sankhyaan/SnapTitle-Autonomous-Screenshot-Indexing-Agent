@@ -399,3 +399,34 @@ class DatabaseManager:
                 LIMIT ?;
             """, (capture_date.strip(), limit))
             return [dict(r) for r in cursor.fetchall()]
+
+    def backup_database(self, backup_destination: Union[str, Path]) -> Path:
+        """Create a backup copy of the SQLite database at backup_destination.
+
+        Args:
+            backup_destination: Target backup file path.
+
+        Returns:
+            Path: Path to the created backup database file.
+        """
+        dest = Path(backup_destination)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        with self._get_connection() as conn:
+            with sqlite3.connect(str(dest)) as backup_conn:
+                conn.backup(backup_conn)
+        logger.info(f"Database backed up to '{dest}'")
+        return dest
+
+    def purge_reverted_records(self) -> int:
+        """Purge soft-deleted (is_reverted = 1) records from database to optimize storage.
+
+        Returns:
+            int: Count of purged records.
+        """
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM screenshots WHERE is_reverted = 1;")
+            deleted_count = cursor.rowcount or 0
+            conn.commit()
+            logger.info(f"Purged {deleted_count} reverted screenshot records.")
+            return deleted_count
