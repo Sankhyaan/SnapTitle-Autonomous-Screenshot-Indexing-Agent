@@ -2,7 +2,7 @@
 
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 import ollama
 
 logger = logging.getLogger("snaptitle.vlm")

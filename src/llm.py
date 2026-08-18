@@ -2,7 +2,7 @@
 
 import re
 import logging
-from typing import Optional
+from typing import Optional, Union
 import ollama
 
 logger = logging.getLogger("snaptitle.llm")
