@@ -168,6 +168,33 @@ class TestDatabaseAndFTS5Search(unittest.TestCase):
         purged_count = self.db.purge_reverted_records()
         self.assertGreaterEqual(purged_count, 1)
 
+    def test_date_range_and_duplicate_summary_queries(self):
+        """Test date range querying and duplicate title summary aggregation."""
+        self.db.log_screenshot(
+            original_filename="Shot1.png",
+            final_filename="common-title_2026-08-01.png",
+            file_path=self.temp_dir / "common-title_2026-08-01.png",
+            title="Common Title",
+            extracted_content="Content 1",
+            capture_date="2026-08-01"
+        )
+        self.db.log_screenshot(
+            original_filename="Shot2.png",
+            final_filename="common-title_2026-08-05.png",
+            file_path=self.temp_dir / "common-title_2026-08-05.png",
+            title="Common Title",
+            extracted_content="Content 2",
+            capture_date="2026-08-05"
+        )
+
+        range_results = self.db.get_screenshots_by_date_range("2026-08-01", "2026-08-10")
+        self.assertEqual(len(range_results), 2)
+
+        dup_summary = self.db.get_duplicate_titles_summary()
+        self.assertEqual(len(dup_summary), 1)
+        self.assertEqual(dup_summary[0]["title"], "Common Title")
+        self.assertEqual(dup_summary[0]["count"], 2)
+
 
 class TestEndToEndPhase6Pipeline(unittest.TestCase):
     """End-to-end watcher test verifying Detection -> AI Titling -> Renaming -> DB Indexing -> Search."""

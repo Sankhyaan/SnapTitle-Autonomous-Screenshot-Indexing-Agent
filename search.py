@@ -63,6 +63,8 @@ def main():
     parser.add_argument("query", nargs="*", help="Search keywords or phrase")
     parser.add_argument("--limit", type=int, default=15, help="Maximum number of results to display (default: 15)")
     parser.add_argument("--date", type=str, default=None, help="Filter screenshots by capture date (YYYY-MM-DD)")
+    parser.add_argument("--start-date", type=str, default=None, help="Start capture date for range search (YYYY-MM-DD)")
+    parser.add_argument("--end-date", type=str, default=None, help="End capture date for range search (YYYY-MM-DD)")
     parser.add_argument("--json", action="store_true", help="Output results in JSON format")
     parser.add_argument("--csv", action="store_true", help="Output results in CSV format")
     parser.add_argument("--stats", action="store_true", help="Show total count of indexed screenshots")
@@ -128,6 +130,34 @@ def main():
                 print(f"  Restored Path: {restored_p}")
         else:
             print(f"\n{YELLOW}[INFO]{RESET} {msg}")
+        return
+
+    # Date range search
+    if args.start_date and args.end_date and not args.query:
+        results = db.get_screenshots_by_date_range(args.start_date, args.end_date, limit=args.limit)
+        if args.json:
+            print(json.dumps(results, indent=2))
+            return
+        if args.csv:
+            print(format_results_as_csv(results).strip())
+            return
+
+        print("=" * 70)
+        print(f"  {BOLD}SnapTitle Screenshots Range:{RESET} '{CYAN}{args.start_date}{RESET}' to '{CYAN}{args.end_date}{RESET}'")
+        print("=" * 70)
+        if not results:
+            print("No screenshots found in specified date range.")
+            return
+
+        print(f"Found {GREEN}{BOLD}{len(results)}{RESET} screenshot(s):\n")
+        for i, r in enumerate(results, 1):
+            file_path = Path(r["file_path"])
+            exists_tag = f" {GREEN}[EXISTS]{RESET}" if file_path.exists() else f" {YELLOW}[MOVED/DELETED]{RESET}"
+            print(f"[{BOLD}{i}{RESET}] {CYAN}{BOLD}{r['final_filename']}{RESET}{exists_tag}")
+            print(f"    {BOLD}Title   :{RESET} {r['title']}")
+            print(f"    {BOLD}Date    :{RESET} {GREEN}{r['capture_date']}{RESET} {DIM}| Original: {r['original_filename']}{RESET}")
+            print(f"    {BOLD}Path    :{RESET} {DIM}{r['file_path']}{RESET}")
+            print(f"{DIM}{'-' * 70}{RESET}")
         return
 
     # Date-only search

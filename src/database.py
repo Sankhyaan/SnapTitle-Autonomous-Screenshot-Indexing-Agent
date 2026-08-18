@@ -430,3 +430,52 @@ class DatabaseManager:
             conn.commit()
             logger.info(f"Purged {deleted_count} reverted screenshot records.")
             return deleted_count
+
+    def get_screenshots_by_date_range(
+        self,
+        start_date: str,
+        end_date: str,
+        limit: int = 50
+    ) -> List[Dict[str, Any]]:
+        """Retrieve screenshots captured within a specific date range [start_date, end_date].
+
+        Args:
+            start_date: Start date string (YYYY-MM-DD).
+            end_date: End date string (YYYY-MM-DD).
+            limit: Maximum records to return (clamped >= 1).
+
+        Returns:
+            List[Dict[str, Any]]: Matching screenshot records.
+        """
+        limit = max(1, int(limit))
+        s_date = start_date.strip()
+        e_date = end_date.strip()
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT id, original_filename, final_filename, file_path,
+                       title, extracted_content, capture_date, created_at, is_reverted
+                FROM screenshots
+                WHERE capture_date >= ? AND capture_date <= ? AND is_reverted = 0
+                ORDER BY capture_date DESC, id DESC
+                LIMIT ?;
+            """, (s_date, e_date, limit))
+            return [dict(r) for r in cursor.fetchall()]
+
+    def get_duplicate_titles_summary(self) -> List[Dict[str, Any]]:
+        """Get summary of screenshot titles shared across multiple entries.
+
+        Returns:
+            List[Dict[str, Any]]: Titles with occurrence count > 1.
+        """
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT title, COUNT(*) AS count
+                FROM screenshots
+                WHERE is_reverted = 0
+                GROUP BY title
+                HAVING COUNT(*) > 1
+                ORDER BY count DESC;
+            """)
+            return [dict(r) for r in cursor.fetchall()]
