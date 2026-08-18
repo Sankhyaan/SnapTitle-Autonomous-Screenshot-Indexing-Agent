@@ -179,6 +179,9 @@ class Config:
     ollama_host: str = "http://127.0.0.1:11434"
     tesseract_cmd: Optional[str] = None
     database_path: Path = field(default_factory=lambda: Path("data/snaptitle.db"))
+    llm_timeout: float = 60.0
+    vlm_timeout: float = 60.0
+    llm_max_retries: int = 1
 
     def __post_init__(self):
         # Convert path strings to Path objects if necessary
@@ -212,6 +215,9 @@ class Config:
             "ollama_host": self.ollama_host,
             "tesseract_cmd": self.tesseract_cmd,
             "database_path": str(self.database_path),
+            "llm_timeout": self.llm_timeout,
+            "vlm_timeout": self.vlm_timeout,
+            "llm_max_retries": self.llm_max_retries,
         }
 
 

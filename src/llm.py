@@ -113,7 +113,8 @@ def generate_title_from_text(
     ocr_text: str,
     model: str = "llama3.2:3b",
     host: str = "http://127.0.0.1:11434",
-    timeout: float = 60.0
+    timeout: float = 60.0,
+    max_retries: int = 1
 ) -> Optional[str]:
     """Send OCR text to local LLM via Ollama and return a clean, concise title.
 
@@ -122,6 +123,7 @@ def generate_title_from_text(
         model: Local LLM model identifier (e.g. 'llama3.2:3b').
         host: Ollama API host URL.
         timeout: Request timeout in seconds.
+        max_retries: Retry count for transient network failures (default: 1).
 
     Returns:
         Optional[str]: Generated and cleaned title, or None if inference failed.
@@ -141,27 +143,29 @@ def generate_title_from_text(
         f"Generate a short descriptive title (max 6 words) for this screenshot:"
     )
 
-    try:
-        client = ollama.Client(host=host, timeout=timeout)
-        response = client.generate(
-            model=model,
-            system=SYSTEM_PROMPT,
-            prompt=prompt,
-            options={
-                "temperature": 0.2,  # Low temperature for deterministic, focused titles
-                "top_p": 0.9,
-                "num_predict": 30,    # Cap token generation for speed
-            }
-        )
+    for attempt in range(1, max(1, max_retries) + 1):
+        try:
+            client = ollama.Client(host=host, timeout=timeout)
+            response = client.generate(
+                model=model,
+                system=SYSTEM_PROMPT,
+                prompt=prompt,
+                options={
+                    "temperature": 0.2,  # Low temperature for deterministic, focused titles
+                    "top_p": 0.9,
+                    "num_predict": 30,    # Cap token generation for speed
+                }
+            )
 
-        raw_output = response.get("response", "")
-        cleaned_title = clean_llm_response(raw_output)
-        logger.debug(f"Raw LLM output: '{raw_output}' -> Cleaned: '{cleaned_title}'")
-        return cleaned_title if cleaned_title else None
+            raw_output = response.get("response", "")
+            cleaned_title = clean_llm_response(raw_output)
+            logger.debug(f"Raw LLM output: '{raw_output}' -> Cleaned: '{cleaned_title}'")
+            return cleaned_title if cleaned_title else None
 
-    except Exception as err:
-        logger.error(f"Ollama LLM call failed for model '{model}': {err}", exc_info=True)
-        return None
+        except Exception as err:
+            logger.error(f"Ollama LLM call attempt {attempt}/{max_retries} failed for model '{model}': {err}")
+
+    return None
 
 
 def generate_disambiguated_title(
@@ -169,7 +173,8 @@ def generate_disambiguated_title(
     context_text: str,
     model: str = "llama3.2:3b",
     host: str = "http://127.0.0.1:11434",
-    timeout: float = 60.0
+    timeout: float = 60.0,
+    max_retries: int = 1
 ) -> Optional[str]:
     """Ask local LLM for a more specific alternative title when a filename collision occurs.
 
@@ -179,6 +184,7 @@ def generate_disambiguated_title(
         model: Local LLM model identifier.
         host: Ollama API host URL.
         timeout: Request timeout in seconds.
+        max_retries: Retry count for transient failures.
 
     Returns:
         Optional[str]: More specific alternative title, or None.
@@ -198,26 +204,28 @@ def generate_disambiguated_title(
         f"Generate alternative title (max 6 words):"
     )
 
-    try:
-        client = ollama.Client(host=host, timeout=timeout)
-        response = client.generate(
-            model=model,
-            system=SYSTEM_PROMPT,
-            prompt=prompt,
-            options={
-                "temperature": 0.4,
-                "top_p": 0.9,
-                "num_predict": 30,
-            }
-        )
+    for attempt in range(1, max(1, max_retries) + 1):
+        try:
+            client = ollama.Client(host=host, timeout=timeout)
+            response = client.generate(
+                model=model,
+                system=SYSTEM_PROMPT,
+                prompt=prompt,
+                options={
+                    "temperature": 0.4,
+                    "top_p": 0.9,
+                    "num_predict": 30,
+                }
+            )
 
-        raw_output = response.get("response", "")
-        cleaned = clean_llm_response(raw_output)
-        if cleaned and cleaned.lower() != colliding_title.lower():
-            logger.info(f"Disambiguated title generated: '{colliding_title}' -> '{cleaned}'")
-            return cleaned
-        return None
+            raw_output = response.get("response", "")
+            cleaned = clean_llm_response(raw_output)
+            if cleaned and cleaned.lower() != colliding_title.lower():
+                logger.info(f"Disambiguated title generated: '{colliding_title}' -> '{cleaned}'")
+                return cleaned
+            return None
 
-    except Exception as err:
-        logger.error(f"LLM title disambiguation failed: {err}", exc_info=True)
-        return None
+        except Exception as err:
+            logger.error(f"LLM title disambiguation attempt {attempt}/{max_retries} failed: {err}")
+
+    return None

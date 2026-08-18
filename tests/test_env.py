@@ -182,6 +182,17 @@ class TestEnvironmentSetup(unittest.TestCase):
         self.assertFalse(is_supported_image_extension(".pdf"))
         self.assertFalse(is_supported_image_extension(".txt"))
 
+    def test_config_timeouts_and_retries(self):
+        """Verify timeout and retry defaults in Config object."""
+        config = load_config()
+        self.assertGreater(config.llm_timeout, 0)
+        self.assertGreater(config.vlm_timeout, 0)
+        self.assertGreaterEqual(config.llm_max_retries, 1)
+        cfg_dict = config.to_dict()
+        self.assertIn("llm_timeout", cfg_dict)
+        self.assertIn("vlm_timeout", cfg_dict)
+        self.assertIn("llm_max_retries", cfg_dict)
+
 
 def main():
     print("============================================================")
