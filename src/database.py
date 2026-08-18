@@ -5,7 +5,7 @@ import sqlite3
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, List, Dict, Any, Tuple
+from typing import Optional, List, Dict, Any, Tuple, Union
 
 from .renamer import safe_rename
 
