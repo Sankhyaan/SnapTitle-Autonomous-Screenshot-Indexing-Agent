@@ -14,7 +14,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.ocr import extract_text_from_image, has_meaningful_text
+from src.ocr import extract_text_from_image, has_meaningful_text, binarize_image, preprocess_image_for_ocr
 from src.llm import generate_title_from_text, clean_llm_response, redact_sensitive_info
 from src.core import SnapTitleService
 from config.config import load_config, Config
@@ -68,6 +68,20 @@ class TestOCRModule(unittest.TestCase):
         extracted = extract_text_from_image(img_path, tesseract_cmd=self.config.tesseract_cmd)
         self.assertTrue(has_meaningful_text(extracted))
         self.assertIn("Connection", extracted)
+
+    def test_image_binarization_and_preprocessing(self):
+        """Verify binarize_image and preprocess_image_for_ocr functions on test image."""
+        img_path = self.temp_dir / "prep_test.png"
+        create_text_image(img_path, ["Preprocessing Test Line"])
+
+        with Image.open(img_path) as raw_img:
+            processed = preprocess_image_for_ocr(raw_img)
+            self.assertIsNotNone(processed)
+            self.assertEqual(processed.mode, "L")
+
+            binarized = binarize_image(raw_img, threshold=128)
+            self.assertIsNotNone(binarized)
+            self.assertEqual(binarized.mode, "1")
 
 
 class TestLLMResponseCleaningAndPrivacy(unittest.TestCase):

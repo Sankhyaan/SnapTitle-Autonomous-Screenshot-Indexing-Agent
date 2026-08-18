@@ -83,11 +83,26 @@ def has_meaningful_text(text: Optional[str], min_chars: int = MIN_MEANINGFUL_TEX
     return True
 
 
-def preprocess_image_for_ocr(img: Image.Image) -> Image.Image:
+def binarize_image(img: Image.Image, threshold: int = 128) -> Image.Image:
+    """Convert an image to high-contrast binary (black & white) for OCR optimization.
+
+    Args:
+        img: Input PIL Image.
+        threshold: Luminance cutoff threshold (default: 128).
+
+    Returns:
+        Image.Image: Binarized PIL Image.
+    """
+    gray = img.convert("L")
+    return gray.point(lambda p: 255 if p > threshold else 0, mode="1")
+
+
+def preprocess_image_for_ocr(img: Image.Image, enhance_contrast: bool = True) -> Image.Image:
     """Apply grayscale conversion, auto-contrast, and sharpening to enhance OCR accuracy.
 
     Args:
         img: Input PIL Image.
+        enhance_contrast: Whether to boost image contrast (default: True).
 
     Returns:
         Image.Image: Preprocessed PIL Image ready for Tesseract recognition.
@@ -97,7 +112,7 @@ def preprocess_image_for_ocr(img: Image.Image) -> Image.Image:
         gray = img.convert("L")
         
         # Auto-contrast normalization
-        contrasted = ImageOps.autocontrast(gray, cutoff=1)
+        contrasted = ImageOps.autocontrast(gray, cutoff=1) if enhance_contrast else gray
         
         # Slight sharpness boost
         enhancer = ImageEnhance.Sharpness(contrasted)
