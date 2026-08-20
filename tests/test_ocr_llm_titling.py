@@ -14,7 +14,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.ocr import extract_text_from_image, has_meaningful_text, binarize_image, preprocess_image_for_ocr
+from src.ocr import extract_text_from_image, has_meaningful_text, binarize_image, preprocess_image_for_ocr, deduplicate_lines
 from src.llm import generate_title_from_text, clean_llm_response, redact_sensitive_info
 from src.core import SnapTitleService
 from config.config import load_config, Config
@@ -82,6 +82,16 @@ class TestOCRModule(unittest.TestCase):
             binarized = binarize_image(raw_img, threshold=128)
             self.assertIsNotNone(binarized)
             self.assertEqual(binarized.mode, "1")
+
+    def test_deduplicate_lines_removes_consecutive_repeats(self):
+        """Verify consecutive duplicate lines are collapsed by deduplicate_lines."""
+        text = "Header Line\nHeader Line\nContent A\nContent B\nContent B\nFooter"
+        result = deduplicate_lines(text)
+        self.assertEqual(result, "Header Line\nContent A\nContent B\nFooter")
+
+        # Empty and single-line edge cases
+        self.assertEqual(deduplicate_lines(""), "")
+        self.assertEqual(deduplicate_lines("Only one line"), "Only one line")
 
 
 class TestLLMResponseCleaningAndPrivacy(unittest.TestCase):

@@ -54,6 +54,29 @@ def clean_extracted_text(text: Optional[str]) -> str:
     return "\n".join(result_lines).strip()
 
 
+def deduplicate_lines(text: str) -> str:
+    """Remove consecutive duplicate lines from OCR output.
+
+    OCR engines sometimes produce repeated lines from headers, footers,
+    or overlapping scan regions. This preserves order and first occurrence.
+
+    Args:
+        text: Cleaned OCR text string.
+
+    Returns:
+        str: Text with consecutive duplicate lines collapsed.
+    """
+    if not text:
+        return ""
+
+    lines = text.splitlines()
+    deduped = [lines[0]] if lines else []
+    for line in lines[1:]:
+        if line.strip() != deduped[-1].strip():
+            deduped.append(line)
+    return "\n".join(deduped)
+
+
 def has_meaningful_text(text: Optional[str], min_chars: int = MIN_MEANINGFUL_TEXT_LENGTH) -> bool:
     """Check if the extracted OCR text contains meaningful readable characters.
 
