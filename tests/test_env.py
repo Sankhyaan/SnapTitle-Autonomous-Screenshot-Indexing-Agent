@@ -8,7 +8,7 @@ Tests:
 
 import sys
 import os
-from pathlib import Path
+from pathlib import Path 
 from PIL import Image, ImageDraw, ImageFont
 
 # Add project root to sys.path
