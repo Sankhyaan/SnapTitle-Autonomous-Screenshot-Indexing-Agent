@@ -193,3 +193,15 @@ class ScreenshotWatcher:
     def clear_ignored_cache(self):
         """Clear the watcher's internal ignored file cache."""
         self.handler.clear_ignored_cache()
+
+    def get_status(self) -> dict:
+        """Return a diagnostic summary of the watcher's current state.
+
+        Returns:
+            dict: Status dictionary with running state, watch directory, and cache info.
+        """
+        return {
+            "is_running": self._is_running,
+            "watch_dir": str(self.watch_dir),
+            "ignored_cache_size": self.handler.get_ignored_count(),
+        }

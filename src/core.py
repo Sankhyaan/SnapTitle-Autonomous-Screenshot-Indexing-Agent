@@ -299,6 +299,25 @@ class SnapTitleService:
         logger.info("Stopping SnapTitle Service...")
         self.watcher.stop()
 
+    def get_watcher_status(self) -> dict:
+        """Return the watcher's current diagnostic status."""
+        return self.watcher.get_status()
+
+    def get_service_status(self) -> dict:
+        """Return a summary of the full service state for diagnostics.
+
+        Returns:
+            dict: Service status including watcher state, database path, and config summary.
+        """
+        return {
+            "watcher": self.get_watcher_status(),
+            "database_path": str(self.config.database_path),
+            "screenshots_dir": str(self.config.screenshots_dir),
+            "popup_enabled": self.config.show_popup,
+            "llm_model": self.config.llm_model,
+            "vlm_model": self.config.vlm_model,
+        }
+
 
 def main():
     """CLI entry point for running SnapTitle daemon."""
