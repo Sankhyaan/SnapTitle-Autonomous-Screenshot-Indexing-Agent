@@ -9,7 +9,7 @@ Tests:
 import sys
 import os
 from pathlib import Path 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont 
 
 # Add project root to sys.path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
