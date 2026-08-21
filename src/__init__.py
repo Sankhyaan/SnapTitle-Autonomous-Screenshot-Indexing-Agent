@@ -19,6 +19,7 @@ from .watcher import (
 from .ocr import (
     extract_text_from_image,
     has_meaningful_text,
+    deduplicate_lines,
 )
 from .llm import (
     generate_title_from_text,
@@ -40,7 +41,7 @@ from .core import (
     SnapTitleService,
 )
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 __all__ = [
     "sanitize_title_to_filename",
     "is_filename_colliding",
@@ -54,6 +55,7 @@ __all__ = [
     "ScreenshotEventHandler",
     "extract_text_from_image",
     "has_meaningful_text",
+    "deduplicate_lines",
     "generate_title_from_text",
     "generate_disambiguated_title",
     "clean_llm_response",

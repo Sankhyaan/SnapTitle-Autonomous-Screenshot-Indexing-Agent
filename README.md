@@ -98,6 +98,7 @@ Search through historical screenshots by keywords, error codes, invoice IDs, top
 ```bash
 python search.py "kubernetes crashloop"
 python search.py "billing invoice"
+python search.py --recent 10
 python search.py --date 2026-08-15
 python search.py --start-date 2026-08-01 --end-date 2026-08-18
 python search.py "docker" --json
