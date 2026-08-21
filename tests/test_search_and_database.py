@@ -195,6 +195,23 @@ class TestDatabaseAndFTS5Search(unittest.TestCase):
         self.assertEqual(dup_summary[0]["title"], "Common Title")
         self.assertEqual(dup_summary[0]["count"], 2)
 
+    def test_recent_renames_query(self):
+        """Verify get_recent_renames returns latest records in descending order of ID."""
+        for i in range(1, 4):
+            self.db.log_screenshot(
+                original_filename=f"Shot_{i}.png",
+                final_filename=f"shot-{i}_2026-08-20.png",
+                file_path=self.temp_dir / f"shot-{i}_2026-08-20.png",
+                title=f"Shot {i}",
+                extracted_content=f"Content {i}",
+                capture_date="2026-08-20"
+            )
+
+        recent = self.db.get_recent_renames(limit=2)
+        self.assertEqual(len(recent), 2)
+        self.assertEqual(recent[0]["title"], "Shot 3")
+        self.assertEqual(recent[1]["title"], "Shot 2")
+
 
 class TestEndToEndPhase6Pipeline(unittest.TestCase):
     """End-to-end watcher test verifying Detection -> AI Titling -> Renaming -> DB Indexing -> Search."""

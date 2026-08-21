@@ -67,6 +67,7 @@ def main():
     parser.add_argument("--end-date", type=str, default=None, help="End capture date for range search (YYYY-MM-DD)")
     parser.add_argument("--json", action="store_true", help="Output results in JSON format")
     parser.add_argument("--csv", action="store_true", help="Output results in CSV format")
+    parser.add_argument("--recent", nargs="?", const=10, type=int, default=None, help="Display recent screenshot renames (default: 10)")
     parser.add_argument("--stats", action="store_true", help="Show total count of indexed screenshots")
     parser.add_argument("--undo", action="store_true", help="Undo the most recent screenshot rename")
     parser.add_argument("--backup", type=str, default=None, help="Backup SQLite database to specified destination file path")
@@ -138,6 +139,33 @@ def main():
             print(f"  Active Screenshots : {GREEN}{BOLD}{stats['active']}{RESET}")
             print(f"  Reverted Screenshots: {YELLOW}{stats['reverted']}{RESET}")
             print("=" * 60)
+        return
+
+    if args.recent is not None:
+        count = max(1, int(args.recent))
+        results = db.get_recent_renames(limit=count)
+        if args.json:
+            print(json.dumps(results, indent=2))
+            return
+        if args.csv:
+            print(format_results_as_csv(results).strip())
+            return
+
+        print("=" * 70)
+        print(f"  {BOLD}SnapTitle Recent Screenshot Renames (Last {count}):{RESET}")
+        print("=" * 70)
+        if not results:
+            print("No recent renames found.")
+            return
+
+        for i, r in enumerate(results, 1):
+            file_path = Path(r["file_path"])
+            exists_tag = f" {GREEN}[EXISTS]{RESET}" if file_path.exists() else f" {YELLOW}[MOVED/DELETED]{RESET}"
+            print(f"[{BOLD}{i}{RESET}] {CYAN}{BOLD}{r['final_filename']}{RESET}{exists_tag}")
+            print(f"    {BOLD}Title   :{RESET} {r['title']}")
+            print(f"    {BOLD}Date    :{RESET} {GREEN}{r['capture_date']}{RESET} {DIM}| Original: {r['original_filename']}{RESET}")
+            print(f"    {BOLD}Path    :{RESET} {DIM}{r['file_path']}{RESET}")
+            print(f"{DIM}{'-' * 70}{RESET}")
         return
 
     if args.undo:
