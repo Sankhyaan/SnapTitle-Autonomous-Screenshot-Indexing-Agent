@@ -108,7 +108,9 @@ class SnapTitleDemoHandler(SimpleHTTPRequestHandler):
             res = generate_title_and_caption_with_gemini(
                 image_path=target_path,
                 api_key=cfg.gemini_api_key,
-                model=cfg.gemini_model
+                model=cfg.gemini_model,
+                timeout=8.0,    # short timeout so cascade falls through quickly
+                max_retries=1   # one attempt per model before trying next
             )
             elapsed_ms = int((time.time() - start_t) * 1000)
 

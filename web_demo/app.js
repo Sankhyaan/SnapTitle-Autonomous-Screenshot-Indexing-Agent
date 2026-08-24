@@ -396,7 +396,7 @@ document.addEventListener('DOMContentLoaded', () => {
       previewNode1.innerHTML = `File: <strong>${curName}</strong><br>Directory: ~/Pictures/Screenshots<br>Status: Already Renamed ✓`;
       latencyNode1.textContent = '-- ms';
 
-      previewNode2.innerHTML = `Status: Completed<br>Route: <strong>Gemini 2.5 Flash Vision</strong>`;
+      previewNode2.innerHTML = `Status: Completed<br>Route: <strong>Gemini 3.7 Flash Vision</strong>`;
       previewNode3.innerHTML = rec.extractedContent 
         ? escapeHtml(rec.extractedContent.substring(0, 130)) + '...' 
         : '<span style="color: var(--text-muted);">Extracted text ready</span>';
@@ -412,7 +412,7 @@ document.addEventListener('DOMContentLoaded', () => {
       previewNode1.innerHTML = `Incoming: <strong>${rawName}</strong><br>Directory: ~/Pictures/Screenshots<br>Size: ${preset.fileSize}`;
       latencyNode1.textContent = '-- ms';
 
-      previewNode2.innerHTML = `Status: Ready<br>Pipeline: <strong>Gemini 2.5 Flash Vision</strong>`;
+      previewNode2.innerHTML = `Status: Ready<br>Pipeline: <strong>Gemini 3.7 Flash Vision</strong>`;
       previewNode3.innerHTML = `<span style="color: var(--text-muted);">Status: Awaiting execution...</span>`;
       latencyNode2.textContent = '-- ms';
       latencyNode3.textContent = '-- ms';
@@ -488,9 +488,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const lat2 = Math.floor(12 + Math.random() * 10);
     latencyNode2.textContent = `${lat2} ms`;
     if (preset.route === 'A') {
-      previewNode2.innerHTML = `Decision: <strong>Path A (Multimodal OCR)</strong><br>Route: Gemini 2.5 Flash<br>Structured text density detected`;
+      previewNode2.innerHTML = `Decision: <strong>Path A (Multimodal OCR)</strong><br>Route: Gemini 3.7 Flash<br>Structured text density detected`;
     } else {
-      previewNode2.innerHTML = `Decision: <strong>Path B (Zero-Shot Vision)</strong><br>Route: Gemini 2.5 Flash<br>Zero OCR text detected`;
+      previewNode2.innerHTML = `Decision: <strong>Path B (Zero-Shot Vision)</strong><br>Route: Gemini 3.7 Flash<br>Zero OCR text detected`;
     }
     await delay(450);
 
@@ -498,9 +498,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // STAGE 03: Gemini Multimodal Vision Extraction (Radiant Violet)
     // --------------------------------------------------
     executeStep(3);
-    pipelineStateLabel.textContent = '[03/04] Calling live Gemini 2.5 Flash Vision model backend...';
+    pipelineStateLabel.textContent = '[03/04] Calling live Gemini 3.7 Flash Vision model backend...';
     pipelineStateLabel.style.color = '#C4B5FD';
-    previewNode3.innerHTML = '⚡ <em>Sending frame to Gemini 2.5 Flash API...</em>';
+    previewNode3.innerHTML = '⚡ <em>Sending frame to Gemini 3.7 Flash API...</em>';
 
     let effectiveDate = (currentPresetKey === 'custom' ? preset.liveCaptureDate : dateStr) || dateStr;
 
@@ -726,7 +726,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Update pipeline nodes to show the file is ready
       previewNode1.innerHTML = `Incoming: <strong>${file.name}</strong><br>Directory: ~/Pictures/Screenshots<br>Size: ${Math.round(file.size / 1024)} KB`;
-      previewNode2.innerHTML = `Status: Ready<br>Pipeline: <strong>Gemini 2.5 Flash Vision</strong>`;
+      previewNode2.innerHTML = `Status: Ready<br>Pipeline: <strong>Gemini 3.7 Flash Vision</strong>`;
       previewNode3.innerHTML = `<span style="color: var(--text-muted);">Status: Awaiting execution...</span>`;
       previewNode4.innerHTML = `<span style="color: var(--text-muted);">Status: Awaiting live AI titling...<br>Will run Gemini and generate title on the spot</span>`;
 
