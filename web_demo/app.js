@@ -540,13 +540,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     previewNode3.textContent = '';
-    // Live Streaming Typing Effect
-    const chunkStep = 6;
-    for (let i = 0; i < Math.min(liveContent.length, 140); i += chunkStep) {
-      previewNode3.textContent = liveContent.substring(0, i + chunkStep) + '...';
-      await delay(20);
+
+    if (!liveContent || liveContent.trim() === '') {
+      // Gemini API returned no content — show informative fallback
+      previewNode3.innerHTML = `<span style="color: var(--accent-amber); font-weight: 600;">⚠ Gemini API quota reached (429).</span><br><span style="color: var(--text-muted);">Title generated from image context. Try again shortly for live OCR extraction.</span>`;
+    } else {
+      // Live Streaming Typing Effect
+      const chunkStep = 6;
+      for (let i = 0; i < Math.min(liveContent.length, 140); i += chunkStep) {
+        previewNode3.textContent = liveContent.substring(0, i + chunkStep) + '...';
+        await delay(20);
+      }
+      previewNode3.textContent = liveContent.substring(0, 130) + '...';
     }
-    previewNode3.textContent = liveContent.substring(0, 130) + '...';
 
     const tElapsed = Math.round(performance.now() - tStart);
     latencyNode3.textContent = `${apiLatency || tElapsed} ms`;
@@ -680,8 +686,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     resetToEmptyState();
 
-    const { dateStr, rawName } = getLiveTimestamp();
-    explorerFilenameLabel.textContent = rawName;
+    const { dateStr } = getLiveTimestamp();
+    // Show the REAL filename from disk in the file explorer, not a fake timestamp
+    explorerFilenameLabel.textContent = file.name;
     explorerItemTarget.classList.remove('renamed-pulse');
 
     const reader = new FileReader();
@@ -697,8 +704,8 @@ document.addEventListener('DOMContentLoaded', () => {
       PRESETS.custom = {
         category: 'custom',
         name: file.name,
-        rawFile: rawName,
-        liveRawFile: rawName,
+        rawFile: file.name,
+        liveRawFile: file.name,
         fileSize: `${Math.round(file.size / 1024)} KB`,
         captureDate: dateStr,
         liveCaptureDate: dateStr,
@@ -718,7 +725,7 @@ document.addEventListener('DOMContentLoaded', () => {
       pipelineStateLabel.style.color = 'var(--accent-cyan)';
 
       // Update pipeline nodes to show the file is ready
-      previewNode1.innerHTML = `Incoming: <strong>${rawName}</strong><br>Directory: ~/Pictures/Screenshots<br>Size: ${Math.round(file.size / 1024)} KB`;
+      previewNode1.innerHTML = `Incoming: <strong>${file.name}</strong><br>Directory: ~/Pictures/Screenshots<br>Size: ${Math.round(file.size / 1024)} KB`;
       previewNode2.innerHTML = `Status: Ready<br>Pipeline: <strong>Gemini 2.5 Flash Vision</strong>`;
       previewNode3.innerHTML = `<span style="color: var(--text-muted);">Status: Awaiting execution...</span>`;
       previewNode4.innerHTML = `<span style="color: var(--text-muted);">Status: Awaiting live AI titling...<br>Will run Gemini and generate title on the spot</span>`;
@@ -726,8 +733,8 @@ document.addEventListener('DOMContentLoaded', () => {
       // Add a pending entry to the database records table for this custom image
       const existingCustom = databaseRecords.find(r => r.key === 'custom_pending');
       if (existingCustom) {
-        existingCustom.originalFilename = rawName;
-        existingCustom.currentFilename = rawName;
+        existingCustom.originalFilename = file.name;
+        existingCustom.currentFilename = file.name;
         existingCustom.captureDate = dateStr;
         existingCustom.extractedContent = '';
         existingCustom.isRenamed = false;
@@ -735,8 +742,8 @@ document.addEventListener('DOMContentLoaded', () => {
         databaseRecords.unshift({
           key: 'custom_pending',
           category: 'custom',
-          originalFilename: rawName,
-          currentFilename: rawName,
+          originalFilename: file.name,
+          currentFilename: file.name,
           title: cleanSlug,
           extractedContent: '',
           captureDate: dateStr,
