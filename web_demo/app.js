@@ -7,19 +7,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const PRESETS = {
     invoice: {
       category: 'invoice',
-      name: 'Document (AWS Invoice)',
-      rawFile: 'Screenshot 2026-08-24 165727.png',
-      fileSize: '842 KB',
-      captureDate: '2026-08-24',
-      route: 'A',
-      imageSrc: 'images/case1_invoice.png',
-      bgStyle: '#FFFFFF',
-      ocrText: 'AWS Invoice #INV-AWS-8827461039 Account ID: 847302915564 TechNova Solutions LLC Total Amount Due: $142.50 USD Billing Period: Jul 1, 2026 - Jul 31, 2026',
-      vlmCaption: null,
-      aiSlug: 'aws_invoice_8827461039_technova',
-  const PRESETS = {
-    invoice: {
-      category: 'invoice',
       name: 'Document (AWS Cloud Invoice)',
       rawFile: 'Screenshot 2026-08-24 091422.png',
       fileSize: '486 KB',
