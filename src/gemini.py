@@ -1,7 +1,8 @@
 """Google Gemini Multimodal Vision & LLM Titling Engine for SnapTitle.
 
-Provides ultra-fast, highly accurate screenshot understanding, OCR extraction, 
-and semantic titling using Google's Gemini multimodal models (gemini-2.5-flash / gemini-1.5-flash).
+Provides ultra-fast, highly accurate screenshot understanding, OCR extraction,
+and semantic titling using Google's Gemini multimodal models.
+Current model cascade: gemini-3.7-flash -> 3.6 -> 3.5 -> 3.5-lite -> 2.5 -> 1.5
 """
 
 import io
@@ -40,7 +41,7 @@ Output MUST be a valid JSON object matching this schema:
 def generate_title_and_caption_with_gemini(
     image_path: Path,
     api_key: str,
-    model: str = "gemini-2.5-flash",
+    model: str = "gemini-3.7-flash",
     timeout: float = 20.0,
     max_retries: int = 2
 ) -> Optional[Tuple[str, str]]:
@@ -108,13 +109,17 @@ def generate_title_and_caption_with_gemini(
 
     payload_bytes = json.dumps(payload).encode("utf-8")
 
-    # Cascading list of models to try in case of 429 rate limit or 404.
-    # Free-tier RPM: gemini-2.5-flash=10, gemini-1.5-flash=15, gemini-1.5-flash-8b=15
+    # Cascading model fallback list: tries newest/fastest first, falls back on 429/404.
+    # Gemini 3.x = latest (Aug 2026), 2.5/1.5 = stable fallbacks
     candidate_models = [model]
     for m in [
-        "gemini-flash-lite-latest",   # lightest, fastest
-        "gemini-1.5-flash-8b",        # 15 RPM free tier
-        "gemini-1.5-flash",           # 15 RPM free tier
+        "gemini-3.7-flash",       # newest workhorse — best for vision/agentic tasks
+        "gemini-3.6-flash",       # July 2026, high token efficiency
+        "gemini-3.5-flash-lite",  # lightest/fastest 3.x model
+        "gemini-3.5-flash",       # May 2026 flagship
+        "gemini-flash-lite-latest",
+        "gemini-1.5-flash-8b",    # 15 RPM free tier fallback
+        "gemini-1.5-flash",       # 15 RPM free tier fallback
         "gemini-2.5-flash",
         "gemini-flash-latest",
     ]:
