@@ -22,8 +22,8 @@ GEMINI_API_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/{
 
 DEFAULT_SYSTEM_INSTRUCTION = """You are an expert autonomous screenshot indexing and file naming engine.
 Your job is to analyze the provided screenshot image and generate:
-1. A concise, descriptive, lowercase snake_case filename title (3 to 6 words max).
-   - Must be specific to what is visible in the screenshot (e.g., "aws_billing_invoice_august", "k8s_pod_crashloop_exit137", "react_useeffect_memory_leak", "slack_db_latency_incident", "microservices_architecture_flowchart").
+1. A concise, descriptive title with spaces between words (3 to 6 words max).
+   - Must be specific to what is visible in the screenshot (e.g., "AWS Billing Invoice August", "Kubernetes Pod CrashLoop Exit137", "React UseEffect Memory Leak", "BGP Peers and Peering Overview", "Savannah Wildlife Giraffes Rhino").
    - NEVER use generic placeholders like "screenshot", "image", or "untitled".
    - Do NOT include file extensions (e.g. no .png, .jpg).
    - NEVER include sensitive passwords, secret API keys, or private credit card numbers.
@@ -31,7 +31,7 @@ Your job is to analyze the provided screenshot image and generate:
 
 Output MUST be a valid JSON object matching this schema:
 {
-  "title": "concise_snake_case_title",
+  "title": "Concise Title With Spaces",
   "content": "Description of text, error codes, and topics visible in the screenshot"
 }
 """
@@ -151,12 +151,13 @@ def generate_title_and_caption_with_gemini(
                     raw_title = raw_text
                     content_summary = raw_text
 
-                # Clean and enforce snake_case
+                # Clean and enforce title with spaces
                 cleaned = clean_llm_response(raw_title, max_words=6)
-                s1 = re.sub(r'(.)([A-Z][a-z]+)', r'\1_\2', cleaned)
-                s2 = re.sub(r'([a-z0-9])([A-Z])', r'\1_\2', s1)
-                title = re.sub(r'[\s\-]+', '_', s2).lower()
-                title = re.sub(r'[^a-z0-9_]', '', title).strip('_')
+                s1 = re.sub(r'[_]+', ' ', cleaned)
+                s2 = re.sub(r'(.)([A-Z][a-z]+)', r'\1 \2', s1)
+                s3 = re.sub(r'([a-z0-9])([A-Z])', r'\1 \2', s2)
+                title = re.sub(r'[\s]+', ' ', s3).strip()
+                title = re.sub(r'[^\w\s\-_.]', '', title).strip(' -_.')
                 
                 if title:
                     logger.info(f"Gemini ({current_model}) successfully titled '{image_path.name}' -> '{title}'")

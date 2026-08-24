@@ -17,7 +17,20 @@ document.addEventListener('DOMContentLoaded', () => {
       ocrText: 'AWS Invoice #INV-AWS-8827461039 Account ID: 847302915564 TechNova Solutions LLC Total Amount Due: $142.50 USD Billing Period: Jul 1, 2026 - Jul 31, 2026',
       vlmCaption: null,
       aiSlug: 'aws_invoice_8827461039_technova',
-      finalFilename: '2026-08-24_aws_invoice_8827461039_technova.png',
+  const PRESETS = {
+    invoice: {
+      category: 'invoice',
+      name: 'Document (AWS Cloud Invoice)',
+      rawFile: 'Screenshot 2026-08-24 091422.png',
+      fileSize: '486 KB',
+      captureDate: '24-08-2026',
+      route: 'A',
+      imageSrc: 'images/case1_invoice.png',
+      bgStyle: '#FFFFFF',
+      ocrText: 'INVOICE INV-AWS-8827461039 Amazon Web Services TechNova Solutions LLC Total Amount Due: $142.50 Billing Period: July 1 - July 31, 2026 EC2, S3, RDS, CloudFront, Route53',
+      vlmCaption: null,
+      aiSlug: 'AWS Billing Invoice',
+      finalFilename: 'AWS Billing Invoice_24-08-2026.png',
       collisionCount: 0,
       latencies: { node1: '32 ms', node2: '14 ms', node3: '210 ms', node4: '280 ms' },
       renderPreview: () => `
@@ -27,16 +40,16 @@ document.addEventListener('DOMContentLoaded', () => {
     terminal: {
       category: 'terminal',
       name: 'Terminal (K8s Payments CrashLoop)',
-      rawFile: 'Screenshot 2026-08-24 165727.png',
+      rawFile: 'Screenshot 2026-08-24 103510.png',
       fileSize: '512 KB',
-      captureDate: '2026-08-24',
+      captureDate: '24-08-2026',
       route: 'A',
       imageSrc: 'images/case2_terminal.png',
       bgStyle: '#07090E',
       ocrText: 'kubectl get pods -n production payments-api CrashLoopBackOff Exit Code 137 OOMKilled Java heap space OrderCache.put limit 1024Mi',
       vlmCaption: null,
-      aiSlug: 'k8s_payments_api_oomkilled_exit137',
-      finalFilename: '2026-08-24_k8s_payments_api_oomkilled_exit137.png',
+      aiSlug: 'Kubernetes Pod CrashLoop OOMKilled',
+      finalFilename: 'Kubernetes Pod CrashLoop OOMKilled_24-08-2026.png',
       collisionCount: 0,
       latencies: { node1: '28 ms', node2: '11 ms', node3: '185 ms', node4: '260 ms' },
       renderPreview: () => `
@@ -46,16 +59,16 @@ document.addEventListener('DOMContentLoaded', () => {
     diagram: {
       category: 'diagram',
       name: 'Diagram (Lamp Troubleshooting)',
-      rawFile: 'Screenshot 2026-08-24 165727.png',
+      rawFile: 'Screenshot 2026-08-24 124018.png',
       fileSize: '380 KB',
-      captureDate: '2026-08-24',
+      captureDate: '24-08-2026',
       route: 'B',
       imageSrc: 'images/case3_diagram.png',
       bgStyle: '#FFFFFF',
       ocrText: 'Lamp doesn\'t work -> Lamp plugged in? -> Bulb burned out? -> Replace bulb / Repair lamp',
       vlmCaption: 'Troubleshooting decision tree flowchart for a broken lamp with conditional diamond decision checks for plug status and burned out bulb.',
-      aiSlug: 'lamp_troubleshooting_flowchart_diagram',
-      finalFilename: '2026-08-24_lamp_troubleshooting_flowchart_diagram.png',
+      aiSlug: 'Lamp Troubleshooting Flowchart',
+      finalFilename: 'Lamp Troubleshooting Flowchart_24-08-2026.png',
       collisionCount: 0,
       latencies: { node1: '35 ms', node2: '16 ms', node3: '240 ms', node4: '270 ms' },
       renderPreview: () => `
@@ -65,16 +78,16 @@ document.addEventListener('DOMContentLoaded', () => {
     chat: {
       category: 'chat',
       name: 'Chat (Weekend Trip Planning)',
-      rawFile: 'Screenshot 2026-08-24 165727.png',
+      rawFile: 'Screenshot 2026-08-24 142055.png',
       fileSize: '680 KB',
-      captureDate: '2026-08-24',
+      captureDate: '24-08-2026',
       route: 'A',
       imageSrc: 'images/case4_chat.png',
       bgStyle: '#FFFFFF',
       ocrText: '# weekend-trip-planning Priya Marcus Dana Sam discussing Friday night departure, carpooling, s\'mores by the fire, cabin check-in at 3pm',
       vlmCaption: null,
-      aiSlug: 'slack_weekend_trip_planning_chat',
-      finalFilename: '2026-08-24_slack_weekend_trip_planning_chat.png',
+      aiSlug: 'Slack Weekend Trip Planning',
+      finalFilename: 'Slack Weekend Trip Planning_24-08-2026.png',
       collisionCount: 0,
       latencies: { node1: '30 ms', node2: '12 ms', node3: '195 ms', node4: '275 ms' },
       renderPreview: () => `
@@ -86,14 +99,14 @@ document.addEventListener('DOMContentLoaded', () => {
       name: 'Photo (Giraffes Savannah Wildlife)',
       rawFile: 'Screenshot 2026-08-24 165727.png',
       fileSize: '2.4 MB',
-      captureDate: '2026-08-24',
+      captureDate: '24-08-2026',
       route: 'B',
       imageSrc: 'images/case5_photo.jpg',
       bgStyle: '#07090E',
       ocrText: null,
       vlmCaption: 'High-resolution wildlife photograph of reticulated giraffes and a rhinoceros grazing in an open grassy savannah landscape under a blue cloudy sky.',
-      aiSlug: 'giraffes_savannah_wildlife_photography',
-      finalFilename: '2026-08-24_giraffes_savannah_wildlife_photography.png',
+      aiSlug: 'Savannah Wildlife Giraffes Rhino',
+      finalFilename: 'Savannah Wildlife Giraffes Rhino_24-08-2026.png',
       collisionCount: 0,
       latencies: { node1: '32 ms', node2: '14 ms', node3: '220 ms', node4: '280 ms' },
       renderPreview: () => `
@@ -106,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function createDefaultRecords() {
     const now = new Date();
     const pad = n => String(n).padStart(2, '0');
-    const dateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    const dateStr = `${pad(now.getDate())}-${pad(now.getMonth() + 1)}-${now.getFullYear()}`;
 
     return [
       {
@@ -329,7 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function getLiveTimestamp() {
     const now = new Date();
     const pad = n => String(n).padStart(2, '0');
-    const dateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    const dateStr = `${pad(now.getDate())}-${pad(now.getMonth() + 1)}-${now.getFullYear()}`;
     const timeStr = `${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
     return {
       dateStr,
@@ -507,7 +520,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let liveTitle = preset.aiSlug;
     // Always start with empty content for custom uploads so Gemini generates fresh
     let liveContent = currentPresetKey === 'custom' ? '' : (preset.route === 'A' ? preset.ocrText : `Visual Scene Understanding: "${preset.vlmCaption}"`);
-    let liveFilename = `${effectiveDate}_${preset.aiSlug}.png`;
+    let liveFilename = `${preset.aiSlug}_${effectiveDate}.png`;
     let liveDate = effectiveDate;
     let apiLatency = 0;
 
@@ -530,7 +543,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data.success && data.title) {
           liveTitle = data.title;
           liveContent = data.content || liveContent;
-          liveFilename = data.final_filename || `${dateStr}_${data.title}.png`;
+          liveFilename = data.final_filename || `${data.title}_${dateStr}.png`;
           liveDate = data.date_stamp || dateStr;
           apiLatency = data.latency_ms || Math.round(performance.now() - tStart);
         }
@@ -691,7 +704,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Render image immediately in preview box
       previewImageCanvas.innerHTML = `<img src="${base64Data}" alt="Uploaded Image" style="width: 100%; height: 100%; object-fit: contain;">`;
 
-      const cleanSlug = file.name.replace(/\.[^/.]+$/, '').toLowerCase().replace(/[^a-z0-9]/g, '_');
+      const cleanSlug = file.name.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim() || 'Custom Screenshot';
 
       // Build the custom preset — Gemini will run ONLY when Simulate is clicked, not now
       PRESETS.custom = {
@@ -706,8 +719,8 @@ document.addEventListener('DOMContentLoaded', () => {
         ocrText: '',
         vlmCaption: '',
         aiSlug: cleanSlug,
-        finalFilename: `${dateStr}_${cleanSlug}.png`,
-        liveFinalFilename: `${dateStr}_${cleanSlug}.png`,
+        finalFilename: `${cleanSlug}_${dateStr}.png`,
+        liveFinalFilename: `${cleanSlug}_${dateStr}.png`,
         collisionCount: 0,
         customDataUrl: base64Data,
         latencies: { node1: '30 ms', node2: '15 ms', node3: '-- ms', node4: '-- ms' }

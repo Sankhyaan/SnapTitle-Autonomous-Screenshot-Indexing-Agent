@@ -19,18 +19,18 @@ WINDOWS_RESERVED_NAMES: Set[str] = {
 # Windows prohibits: < > : " / \ | ? * and ASCII 0-31
 INVALID_CHARS_REGEX = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
 
-# Date suffix pattern matching _YYYY-MM-DD
-DATE_SUFFIX_REGEX = re.compile(r"_(\d{4}-\d{2}-\d{2})(?:-\d{6}(?:-\d+)?)?$")
+# Date suffix pattern matching _DD-MM-YYYY or legacy _YYYY-MM-DD
+DATE_SUFFIX_REGEX = re.compile(r"_(\d{2}-\d{2}-\d{4}|\d{4}-\d{2}-\d{2})(?:-\d{6}(?:-\d+)?)?$")
 
 
 def parse_filename_date(filename_or_path: Optional[Union[str, Path]]) -> Optional[str]:
-    """Extract capture date (YYYY-MM-DD) from a managed SnapTitle filename.
+    """Extract capture date (DD-MM-YYYY or YYYY-MM-DD) from a managed SnapTitle filename.
 
     Args:
-        filename_or_path: Filename string or Path object (e.g. 'error-log_2026-08-15.png').
+        filename_or_path: Filename string or Path object (e.g. 'error log_24-08-2026.png').
 
     Returns:
-        Optional[str]: Date string 'YYYY-MM-DD' if found, else None.
+        Optional[str]: Date string if found, else None.
     """
     if not filename_or_path:
         return None
@@ -46,10 +46,10 @@ def extract_title_stem(filename_or_path: Optional[Union[str, Path]]) -> str:
     """Extract the base title slug from a managed SnapTitle filename, removing date suffix.
 
     Args:
-        filename_or_path: Filename string or Path object (e.g. 'app-error_2026-08-15.png').
+        filename_or_path: Filename string or Path object (e.g. 'app error_24-08-2026.png').
 
     Returns:
-        str: Base title slug (e.g. 'app-error').
+        str: Base title slug (e.g. 'app error').
     """
     if not filename_or_path:
         return ""
@@ -60,7 +60,7 @@ def extract_title_stem(filename_or_path: Optional[Union[str, Path]]) -> str:
 
 
 def get_file_capture_date(file_path: Path) -> str:
-    """Extract the original capture/creation date of a screenshot in YYYY-MM-DD format.
+    """Extract the original capture/creation date of a screenshot in DD-MM-YYYY format.
 
     Reads creation/modification metadata from the filesystem before any renaming occurs.
 
@@ -68,7 +68,7 @@ def get_file_capture_date(file_path: Path) -> str:
         file_path: Path to the screenshot file.
 
     Returns:
-        str: Formatted date string (e.g. '2026-08-15').
+        str: Formatted date string (e.g. '24-08-2026').
     """
     try:
         if file_path.exists():
@@ -84,11 +84,11 @@ def get_file_capture_date(file_path: Path) -> str:
             
             # Use the earliest of creation and modification timestamp
             ts = min(creation_time, stat_result.st_mtime) if creation_time else stat_result.st_mtime
-            return datetime.fromtimestamp(ts).strftime("%Y-%m-%d")
+            return datetime.fromtimestamp(ts).strftime("%d-%m-%Y")
     except Exception:
         pass
 
-    return datetime.now().strftime("%Y-%m-%d")
+    return datetime.now().strftime("%d-%m-%Y")
 
 
 def sanitize_title_to_filename(
@@ -97,16 +97,16 @@ def sanitize_title_to_filename(
     original_extension: str = ".png",
     max_stem_length: int = 100
 ) -> str:
-    """Convert a title string and capture date into a safe filename formatted as title_YYYY-MM-DD.ext.
+    """Convert a title string and capture date into a safe filename formatted as Title With Spaces_DD-MM-YYYY.ext.
 
-    Format: sanitized-title-text_YYYY-MM-DD.png
+    Format: <title with spaces>_DD-MM-YYYY.png
 
     Conventions:
-    - Appends capture date in YYYY-MM-DD format prefixed by an underscore '_'.
+    - Appends capture date in DD-MM-YYYY format prefixed by an underscore '_'.
+    - Preserves readable spaces between words.
     - Normalizes Unicode characters.
     - Strips prohibited OS characters (< > : " / \\ | ? * and control chars).
-    - Converts title text to lowercase-with-hyphens (kebab-case).
-    - Collapses multiple hyphens and whitespace into a single hyphen.
+    - Collapses multiple whitespace/underscores into a single space.
     - Trims leading/trailing hyphens, periods, and spaces.
     - Prevents collisions with Windows reserved device names (e.g. CON, NUL, PRN).
     - Enforces maximum character length on the overall filename stem (accounting for date suffix).
@@ -114,7 +114,7 @@ def sanitize_title_to_filename(
 
     Args:
         title: The input title or description.
-        capture_date: Optional capture date (str 'YYYY-MM-DD', datetime, or date). Defaults to today.
+        capture_date: Optional capture date (str 'DD-MM-YYYY', datetime, or date). Defaults to today.
         original_extension: The file extension (including leading dot, e.g. '.png').
         max_stem_length: Maximum allowed total length for the stem including date suffix.
 
@@ -122,48 +122,50 @@ def sanitize_title_to_filename(
         str: Safe, sanitized filename with title first, date suffix, and extension.
     """
     max_stem_length = max(15, int(max_stem_length))
-    # 1. Format date suffix (YYYY-MM-DD)
+    # 1. Format date suffix (DD-MM-YYYY)
     if isinstance(capture_date, (datetime, date)):
-        date_suffix = capture_date.strftime("%Y-%m-%d")
+        date_suffix = capture_date.strftime("%d-%m-%Y")
     elif isinstance(capture_date, str) and len(capture_date.strip()) >= 10:
-        date_suffix = capture_date.strip()[:10]
+        raw_d = capture_date.strip()[:10]
+        if re.match(r"^\d{4}-\d{2}-\d{2}$", raw_d):
+            y, m, d = raw_d.split("-")
+            date_suffix = f"{d}-{m}-{y}"
+        else:
+            date_suffix = raw_d
     else:
-        date_suffix = datetime.now().strftime("%Y-%m-%d")
+        date_suffix = datetime.now().strftime("%d-%m-%Y")
 
-    # 2. Sanitize title text
+    # 2. Sanitize title text (allowing spaces between words)
     if not title or not title.strip():
         title_stem = "screenshot"
     else:
         # Normalize unicode (NFKD)
         normalized = unicodedata.normalize("NFKD", title)
         
-        # Replace invalid OS characters with hyphens
-        cleaned = INVALID_CHARS_REGEX.sub("-", normalized)
+        # Replace invalid OS characters with spaces
+        cleaned = INVALID_CHARS_REGEX.sub(" ", normalized)
         
-        # Replace remaining unwanted symbols (keep alphanumeric, hyphens, underscores, dots)
-        cleaned = re.sub(r"[^\w\s\-_.]", "-", cleaned, flags=re.UNICODE)
+        # Replace remaining unwanted symbols (keep alphanumeric, spaces, hyphens, underscores, dots)
+        cleaned = re.sub(r"[^\w\s\-_.]", " ", cleaned, flags=re.UNICODE)
         
-        # Convert spaces and underscores to hyphens and lowercase
-        cleaned = re.sub(r"[\s_]+", "-", cleaned).lower()
-        
-        # Collapse multiple hyphens
-        cleaned = re.sub(r"-+", "-", cleaned)
+        # Convert multiple spaces, underscores, and hyphens into single readable spaces
+        cleaned = re.sub(r"[\s_]+", " ", cleaned)
         
         # Strip leading and trailing hyphens, dots, and whitespace
-        title_stem = cleaned.strip("- .")
+        title_stem = cleaned.strip(" -_.")
         
         if not title_stem:
             title_stem = "screenshot"
 
     # Handle Windows reserved names (e.g. "con", "nul", "prn")
     if title_stem.upper() in WINDOWS_RESERVED_NAMES:
-        title_stem = f"{title_stem}-file"
+        title_stem = f"{title_stem} file"
 
-    # 3. Assemble full stem: title-stem_YYYY-MM-DD
+    # 3. Assemble full stem: title with spaces_DD-MM-YYYY
     # Reserve space for date suffix (10 chars) + underscore (1 char) = 11 chars
     max_title_len = max(10, max_stem_length - len(date_suffix) - 1)
     if len(title_stem) > max_title_len:
-        title_stem = title_stem[:max_title_len].rstrip("- .")
+        title_stem = title_stem[:max_title_len].rstrip(" -_.")
         if not title_stem:
             title_stem = "screenshot"
 

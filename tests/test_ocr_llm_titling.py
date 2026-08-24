@@ -214,10 +214,10 @@ class TestRealScreenshotsEndToEndTitling(unittest.TestCase):
 
             self.assertIsNotNone(renamed_file, "Screenshot was not automatically renamed by watcher service.")
             print(f"[Pipeline Test] Original -> Renamed File: '{renamed_file.name}'")
-            today = datetime.now().strftime("%Y-%m-%d")
+            today = datetime.now().strftime("%d-%m-%Y")
             self.assertTrue(renamed_file.name.endswith(f"_{today}.png") or f"_{today}" in renamed_file.name, f"Renamed file '{renamed_file.name}' missing date suffix '_{today}.png'")
             self.assertTrue(renamed_file.name.endswith(".png"))
-            self.assertTrue(any(w in renamed_file.name for w in ["payment", "invoice", "hosting", "cloud", "services"]))
+            self.assertTrue(any(w in renamed_file.name.lower() for w in ["payment", "invoice", "hosting", "cloud", "services"]))
 
         finally:
             self.service.stop()

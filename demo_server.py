@@ -117,12 +117,12 @@ class SnapTitleDemoHandler(SimpleHTTPRequestHandler):
 
             if res:
                 title, content = res
-                today_str = datetime.now().strftime('%Y-%m-%d')
+                today_str = datetime.now().strftime('%d-%m-%Y')
                 self._send_json_response({
                     "success": True,
                     "title": title,
                     "content": content,
-                    "final_filename": f"{today_str}_{title}.png",
+                    "final_filename": f"{title}_{today_str}.png",
                     "date_stamp": today_str,
                     "latency_ms": elapsed_ms
                 })

@@ -101,15 +101,16 @@ class TestSmartDuplicateResolution(unittest.TestCase):
         self.assertNotEqual(renamed1.name.lower(), renamed2.name.lower())
 
         # Verify both contain today's date suffix
+        today = datetime.now().strftime("%d-%m-%Y")
         self.assertTrue(renamed1.name.endswith(f"_{today}.png") or f"_{today}" in renamed1.name)
         self.assertTrue(renamed2.name.endswith(f"_{today}.png") or f"_{today}" in renamed2.name)
 
     def test_case_insensitive_collision_disambiguation(self):
         """Verify case-insensitive matching triggers smart disambiguation on Windows/macOS."""
-        today = datetime.now().strftime("%Y-%m-%d")
+        today = datetime.now().strftime("%d-%m-%Y")
         
         # Pre-create an uppercase file that could collide
-        existing_file = self.temp_dir / f"PAYMENT-INVOICE_{today}.png"
+        existing_file = self.temp_dir / f"PAYMENT INVOICE_{today}.png"
         existing_file.write_text("existing invoice")
 
         new_shot = self.temp_dir / "invoice_new.png"
@@ -124,20 +125,20 @@ class TestSmartDuplicateResolution(unittest.TestCase):
         self.assertIsNotNone(renamed)
         print(f"\n[Test 2] Case-Insensitive Disambiguated File: '{renamed.name}'")
 
-        self.assertNotEqual(renamed.name.lower(), f"payment-invoice_{today}.png")
+        self.assertNotEqual(renamed.name.lower(), f"payment invoice_{today}.png")
         self.assertTrue(renamed.exists())
         self.assertTrue(existing_file.exists())
 
     def test_retry_cap_and_timestamp_fallback(self):
         """Verify that if all smart retries collide, it safely falls back to deterministic timestamp."""
-        today = datetime.now().strftime("%Y-%m-%d")
+        today = datetime.now().strftime("%d-%m-%Y")
         
         # Create a test file
         test_shot = self.temp_dir / "test_shot.png"
         create_text_image(test_shot, ["Test Notification Message"])
 
         # Mock title provider to intentionally return a colliding title
-        colliding_title = "test-notification"
+        colliding_title = "test notification"
         existing = self.temp_dir / f"{colliding_title}_{today}.png"
         existing.write_text("dummy")
 

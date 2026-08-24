@@ -187,7 +187,7 @@ class TestVLMFallback(unittest.TestCase):
                     break
                 time.sleep(0.5)
 
-            today = datetime.now().strftime("%Y-%m-%d")
+            today = datetime.now().strftime("%d-%m-%Y")
             for f in files_after:
                 self.assertTrue(f"_{today}" in f.name, f"File '{f.name}' missing date suffix '_{today}'")
 

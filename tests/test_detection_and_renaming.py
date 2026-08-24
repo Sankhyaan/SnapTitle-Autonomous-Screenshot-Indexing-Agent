@@ -29,16 +29,16 @@ from config.config import Config
 
 
 class TestFilenameSanitizerWithDateSuffix(unittest.TestCase):
-    """Test filename sanitization with title_YYYY-MM-DD.ext format."""
+    """Test filename sanitization with Title With Spaces_DD-MM-YYYY.ext format."""
 
     def test_basic_title_with_date(self):
         title = "Login Screen Error"
-        result = sanitize_title_to_filename(title, capture_date="2026-08-04", original_extension=".png")
-        self.assertEqual(result, "login-screen-error_2026-08-04.png")
+        result = sanitize_title_to_filename(title, capture_date="04-08-2026", original_extension=".png")
+        self.assertEqual(result, "Login Screen Error_04-08-2026.png")
 
     def test_invalid_os_characters(self):
         title = 'Error: 404 / Page "Not Found"? <Resolved> | Fixed*'
-        result = sanitize_title_to_filename(title, capture_date="2026-08-04", original_extension=".png")
+        result = sanitize_title_to_filename(title, capture_date="04-08-2026", original_extension=".png")
         self.assertNotIn(":", result)
         self.assertNotIn("/", result)
         self.assertNotIn('"', result)
@@ -47,27 +47,27 @@ class TestFilenameSanitizerWithDateSuffix(unittest.TestCase):
         self.assertNotIn(">", result)
         self.assertNotIn("|", result)
         self.assertNotIn("*", result)
-        self.assertEqual(result, "error-404-page-not-found-resolved-fixed_2026-08-04.png")
+        self.assertEqual(result, "Error 404 Page Not Found Resolved Fixed_04-08-2026.png")
 
     def test_windows_reserved_names(self):
         for reserved in ["CON", "prn", "AUX", "Nul", "com1", "LPT2"]:
-            result = sanitize_title_to_filename(reserved, capture_date="2026-08-04", original_extension=".png")
-            self.assertTrue(result.endswith("_2026-08-04.png"))
+            result = sanitize_title_to_filename(reserved, capture_date="04-08-2026", original_extension=".png")
+            self.assertTrue(result.endswith("_04-08-2026.png"))
             stem = Path(result).stem.rsplit("_", 1)[0]
             self.assertNotEqual(stem.upper(), reserved.upper())
-            self.assertTrue(stem.endswith("-file"))
+            self.assertTrue(stem.endswith(" file"))
 
     def test_max_length_enforcement_with_date_suffix(self):
         long_title = "a" * 150
-        result = sanitize_title_to_filename(long_title, capture_date="2026-08-04", original_extension=".png", max_stem_length=50)
+        result = sanitize_title_to_filename(long_title, capture_date="04-08-2026", original_extension=".png", max_stem_length=50)
         full_stem = Path(result).stem
         self.assertLessEqual(len(full_stem), 50)
-        self.assertTrue(result.endswith("_2026-08-04.png"))
+        self.assertTrue(result.endswith("_04-08-2026.png"))
 
     def test_empty_or_whitespace_title(self):
-        today = datetime.now().strftime("%Y-%m-%d")
+        today = datetime.now().strftime("%d-%m-%Y")
         self.assertEqual(sanitize_title_to_filename("", original_extension=".png"), f"screenshot_{today}.png")
-        self.assertEqual(sanitize_title_to_filename("   ", capture_date="2026-08-04", original_extension=".jpg"), "screenshot_2026-08-04.jpg")
+        self.assertEqual(sanitize_title_to_filename("   ", capture_date="04-08-2026", original_extension=".jpg"), "screenshot_04-08-2026.jpg")
 
 
 class TestCollisionDetectionWithDateSuffix(unittest.TestCase):
@@ -80,34 +80,34 @@ class TestCollisionDetectionWithDateSuffix(unittest.TestCase):
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def test_case_insensitive_collision_same_day(self):
-        existing_file = self.temp_dir / "Test-Screenshot_2026-08-04.png"
+        existing_file = self.temp_dir / "Test Screenshot_04-08-2026.png"
         existing_file.write_text("dummy")
 
         # Exact match
-        self.assertTrue(is_filename_colliding(self.temp_dir, "Test-Screenshot_2026-08-04.png"))
+        self.assertTrue(is_filename_colliding(self.temp_dir, "Test Screenshot_04-08-2026.png"))
         # Lowercase match
-        self.assertTrue(is_filename_colliding(self.temp_dir, "test-screenshot_2026-08-04.png"))
+        self.assertTrue(is_filename_colliding(self.temp_dir, "test screenshot_04-08-2026.png"))
         # Uppercase match
-        self.assertTrue(is_filename_colliding(self.temp_dir, "TEST-SCREENSHOT_2026-08-04.PNG"))
+        self.assertTrue(is_filename_colliding(self.temp_dir, "TEST SCREENSHOT_04-08-2026.PNG"))
         # Non-colliding title
-        self.assertFalse(is_filename_colliding(self.temp_dir, "other-image_2026-08-04.png"))
+        self.assertFalse(is_filename_colliding(self.temp_dir, "other image_04-08-2026.png"))
 
     def test_different_dates_do_not_collide(self):
         """Confirm two screenshots with the same title on different dates save without collision."""
-        day1_file = self.temp_dir / "dashboard-overview_2026-08-01.png"
+        day1_file = self.temp_dir / "Dashboard Overview_01-08-2026.png"
         day1_file.write_text("day 1 content")
 
         source_day2 = self.temp_dir / "temp_shot_day2.png"
         source_day2.write_text("day 2 content")
 
-        # Resolving for 2026-08-02 should NOT collide with 2026-08-01
+        # Resolving for 02-08-2026 should NOT collide with 01-08-2026
         resolved_day2 = resolve_unique_filename(
             folder=self.temp_dir,
             title="Dashboard Overview",
             original_path=source_day2,
-            capture_date="2026-08-02"
+            capture_date="02-08-2026"
         )
-        self.assertEqual(resolved_day2, "dashboard-overview_2026-08-02.png")
+        self.assertEqual(resolved_day2, "Dashboard Overview_02-08-2026.png")
 
         # Perform actual rename and verify both files coexist cleanly
         renamed_day2 = safe_rename(source_day2, resolved_day2, target_folder=self.temp_dir)
@@ -118,7 +118,7 @@ class TestCollisionDetectionWithDateSuffix(unittest.TestCase):
 
     def test_same_day_same_title_triggers_collision_fallback(self):
         """Confirm two screenshots on the same date with the same title trigger collision fallback."""
-        (self.temp_dir / "dashboard-overview_2026-08-04.png").write_text("first shot")
+        (self.temp_dir / "Dashboard Overview_04-08-2026.png").write_text("first shot")
 
         source_second = self.temp_dir / "second_shot.png"
         source_second.write_text("second shot content")
@@ -127,10 +127,10 @@ class TestCollisionDetectionWithDateSuffix(unittest.TestCase):
             folder=self.temp_dir,
             title="Dashboard Overview",
             original_path=source_second,
-            capture_date="2026-08-04"
+            capture_date="04-08-2026"
         )
-        self.assertNotEqual(resolved, "dashboard-overview_2026-08-04.png")
-        self.assertTrue(resolved.startswith("dashboard-overview_2026-08-04-"))
+        self.assertNotEqual(resolved, "Dashboard Overview_04-08-2026.png")
+        self.assertTrue(resolved.startswith("Dashboard Overview_04-08-2026-"))
         self.assertTrue(resolved.endswith(".png"))
 
 
@@ -223,7 +223,7 @@ class TestDetectionAndRenamingIntegration(unittest.TestCase):
             self.assertEqual(len(set(names)), 3, "Renamed filenames are not unique!")
 
             for name in names:
-                self.assertTrue(name.startswith("test-screenshot_"), f"Filename '{name}' does not start with test-screenshot_")
+                self.assertTrue(name.startswith("test screenshot_"), f"Filename '{name}' does not start with test screenshot_")
                 self.assertTrue(name.endswith(".png"), f"Filename '{name}' does not end with .png")
 
             print(f"\n[SUCCESS] Renamed 3 screenshots with title first and date suffix (..._{today}.png):")

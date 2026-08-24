@@ -227,7 +227,8 @@ class TestFullEndToEndPipelineWithPopup(unittest.TestCase):
 
             self.assertIsNotNone(renamed_file, "Screenshot was not renamed through the popup pipeline.")
             print(f"\n[End-to-End Popup Pipeline] Original -> Renamed File: '{renamed_file.name}'")
-            self.assertTrue(renamed_file.name.startswith("q3-financial-statement_"))
+            today = datetime.now().strftime("%d-%m-%Y")
+            self.assertTrue(renamed_file.name.lower().startswith("q3 financial statement_"))
             self.assertTrue(renamed_file.name.endswith(f"_{today}.png"))
 
         finally:
