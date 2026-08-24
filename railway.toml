@@ -1,0 +1,8 @@
+[build]
+builder = "NIXPACKS"
+buildCommand = "pip install -r requirements-web.txt"
+
+[deploy]
+startCommand = "python demo_server.py --no-browser"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
