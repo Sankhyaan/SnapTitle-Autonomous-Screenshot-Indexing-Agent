@@ -223,25 +223,26 @@ class SnapTitleDemoHandler(SimpleHTTPRequestHandler):
 
 
 def run_server(port: int = 8080, open_browser: bool = True):
-    """Start local HTTP server."""
-    server_address = ("127.0.0.1", port)
+    """Start HTTP server. Binds to 0.0.0.0 for cloud deployment compatibility."""
+    host = "0.0.0.0"  # bind to all interfaces so cloud platforms can route traffic
+    server_address = (host, port)
     
     try:
         httpd = HTTPServer(server_address, SnapTitleDemoHandler)
-    except OSError as e:
+    except OSError:
         logger.warning(f"Port {port} in use, trying next available port...")
         port += 1
-        server_address = ("127.0.0.1", port)
+        server_address = (host, port)
         httpd = HTTPServer(server_address, SnapTitleDemoHandler)
 
-    url = f"http://127.0.0.1:{port}"
+    display_url = f"http://127.0.0.1:{port}" if host == "0.0.0.0" else f"http://{host}:{port}"
     logger.info("=" * 60)
-    logger.info(f"🚀 SnapTitle Visual Pipeline Demo is LIVE at: {url}")
-    logger.info(f"📂 Serving directory: {WEB_DEMO_DIR}")
+    logger.info(f"\U0001f680 SnapTitle Visual Pipeline Demo is LIVE at: {display_url}")
+    logger.info(f"\U0001f4c2 Serving directory: {WEB_DEMO_DIR}")
     logger.info("=" * 60)
 
     if open_browser:
-        webbrowser.open(url)
+        webbrowser.open(display_url)
 
     try:
         httpd.serve_forever()
@@ -251,9 +252,13 @@ def run_server(port: int = 8080, open_browser: bool = True):
 
 
 if __name__ == "__main__":
+    # Cloud platforms (Render, Railway, Fly.io) inject PORT as an env variable
+    default_port = int(os.environ.get("PORT", 8080))
+    is_cloud = os.environ.get("RENDER") or os.environ.get("RAILWAY_ENVIRONMENT") or os.environ.get("FLY_APP_NAME")
+
     parser = argparse.ArgumentParser(description="SnapTitle Interactive Visual Demo Server")
-    parser.add_argument("--port", type=int, default=8080, help="Port to bind server (default: 8080)")
-    parser.add_argument("--no-browser", action="store_true", help="Do not automatically open browser")
+    parser.add_argument("--port", type=int, default=default_port, help="Port to bind server (default: $PORT or 8080)")
+    parser.add_argument("--no-browser", action="store_true", default=bool(is_cloud), help="Do not automatically open browser")
     args = parser.parse_args()
 
     run_server(port=args.port, open_browser=not args.no_browser)

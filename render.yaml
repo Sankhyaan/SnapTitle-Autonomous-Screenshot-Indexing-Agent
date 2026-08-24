@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: snaptitle-demo
+    runtime: python
+    buildCommand: pip install -r requirements-web.txt
+    startCommand: python demo_server.py --no-browser
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false          # you will paste the value in Render dashboard
+      - key: SNAPTITLE_GEMINI_MODEL
+        value: gemini-3.7-flash

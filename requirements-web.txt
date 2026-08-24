@@ -1,0 +1,10 @@
+# SnapTitle Web Demo — minimal dependencies for cloud deployment
+# Only what demo_server.py needs (no watchdog, tkinter, tesseract, ollama)
+
+# Image processing (for reading uploaded images in /api/analyze)
+pillow>=10.0.0
+
+# Configuration loading
+pyyaml>=6.0.1
+
+# All other dependencies (urllib, json, sqlite3, base64, http.server) are stdlib builtins
