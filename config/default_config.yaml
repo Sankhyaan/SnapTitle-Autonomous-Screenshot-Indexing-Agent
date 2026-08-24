@@ -1,4 +1,4 @@
-# SnapTitle Default Configuration
+# SnapTitle Configuration
 
 # Folder to watch for screenshots (leave blank "" to auto-detect OS default screenshot directory)
 screenshots_dir: ""
@@ -9,14 +9,16 @@ show_popup: true
 # Non-blocking popup display duration before auto-saving (seconds)
 popup_duration_seconds: 5
 
-# Local AI Models (Ollama)
-# Lightweight LLM for summarizing extracted OCR text
+# AI Provider: "gemini" (Cloud Multimodal - Fast & Accurate) or "ollama" (Local Models)
+ai_provider: "gemini"
+
+# Google Gemini API Settings (Multimodal Vision & High-Accuracy Titling)
+gemini_api_key: ""
+gemini_model: "gemini-2.5-flash"
+
+# Local AI Models (Ollama Fallback)
 llm_model: "llama3.2:3b"
-
-# Vision Language Model (VLM) for screenshots with little/no text (photos, memes, icon-heavy UI)
 vlm_model: "moondream:latest"
-
-# Ollama API Host URL
 ollama_host: "http://127.0.0.1:11434"
 
 # Tesseract executable path (leave blank "" to auto-detect in PATH or standard installation directories)

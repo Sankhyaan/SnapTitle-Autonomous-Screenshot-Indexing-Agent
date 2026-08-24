@@ -27,3 +27,4 @@ desktop.ini
 tests/sample_ocr.png
 tests/test_*.png
 tests/temp_*
+scratch/

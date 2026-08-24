@@ -1,4 +1,4 @@
-"""SnapTitle non-blocking floating Popup UI with thumbnail preview, live editing, and countdown timer."""
+"""SnapTitle modern floating Desktop HUD Notification with thumbnail preview, live editing, and animated countdown."""
 
 import os
 import sys
@@ -10,13 +10,29 @@ from pathlib import Path
 from typing import Optional, Callable
 import tkinter as tk
 from tkinter import ttk
-from PIL import Image, ImageTk, ImageOps
+from PIL import Image, ImageTk, ImageOps, ImageDraw
 
 logger = logging.getLogger("snaptitle.popup")
 
 
 class ScreenshotPopup(tk.Toplevel):
-    """Floating desktop notification popup window for newly detected screenshots."""
+    """Floating modern desktop HUD notification for newly detected screenshots."""
+
+    # Curated color palette matching web design system
+    BG_DARK = "#07090E"
+    CARD_BG = "#0D121F"
+    CARD_INNER = "#131B2E"
+    INPUT_BG = "#030712"
+    BORDER_GLOW = "#06B6D4"
+    BORDER_SUBTLE = "#1E293B"
+    TEXT_PRIMARY = "#F8FAFC"
+    TEXT_SECONDARY = "#94A3B8"
+    TEXT_MUTED = "#64748B"
+    ACCENT_CYAN = "#06B6D4"
+    ACCENT_VIOLET = "#8B5CF6"
+    ACCENT_EMERALD = "#10B981"
+    ACCENT_AMBER = "#F59E0B"
+    ACCENT_ROSE = "#F43F5E"
 
     def __init__(
         self,
@@ -36,13 +52,14 @@ class ScreenshotPopup(tk.Toplevel):
         self._timer_job = None
         self._is_closed = False
         self._is_editing = False
+        self._is_hovered = False
         self._thumbnail_photo: Optional[ImageTk.PhotoImage] = None
 
         # Configure window appearance
         self.title("SnapTitle Notification")
         self.overrideredirect(True)  # Frameless floating card
         self.attributes("-topmost", True)  # Always on top
-        self.config(bg="#181825")  # Modern dark background
+        self.config(bg=self.BG_DARK)
 
         self._build_ui()
         self._position_window()
@@ -51,90 +68,108 @@ class ScreenshotPopup(tk.Toplevel):
         self.bind("<Return>", lambda e: self._on_confirm_click())
         self.bind("<Escape>", lambda e: self._on_confirm_click())
 
-    def _build_ui(self):
-        """Construct the modern dark-themed popup layout."""
-        # Outer border frame
-        outer_frame = tk.Frame(self, bg="#313244", padx=1, pady=1)
-        outer_frame.pack(fill="both", expand=True)
+        # Hover pause/resume interaction
+        self.bind("<Enter>", self._on_mouse_enter)
+        self.bind("<Leave>", self._on_mouse_leave)
 
-        main_card = tk.Frame(outer_frame, bg="#1e1e2e", padx=14, pady=12)
+    def _build_ui(self):
+        """Construct the ultra-sleek dark-themed popup layout."""
+        # Outer luminous gradient border simulation frame
+        self.outer_border = tk.Frame(self, bg=self.BORDER_GLOW, padx=1, pady=1)
+        self.outer_border.pack(fill="both", expand=True)
+
+        # Main Card Frame
+        main_card = tk.Frame(self.outer_border, bg=self.CARD_BG, padx=16, pady=14)
         main_card.pack(fill="both", expand=True)
 
-        # Header: App brand and close button
-        header_frame = tk.Frame(main_card, bg="#1e1e2e")
-        header_frame.pack(fill="x", pady=(0, 8))
+        # Header: Brand Pill, AI Model Badge, and Close Button
+        header_frame = tk.Frame(main_card, bg=self.CARD_BG)
+        header_frame.pack(fill="x", pady=(0, 10))
 
-        app_title = tk.Label(
-            header_frame,
-            text="✨ SnapTitle",
+        # Brand icon and title
+        brand_group = tk.Frame(header_frame, bg=self.CARD_BG)
+        brand_group.pack(side="left")
+
+        brand_pill = tk.Label(
+            brand_group,
+            text="📸 SnapTitle",
             font=("Segoe UI", 10, "bold"),
-            fg="#cdd6f4",
-            bg="#1e1e2e"
+            fg=self.TEXT_PRIMARY,
+            bg=self.CARD_BG
         )
-        app_title.pack(side="left")
+        brand_pill.pack(side="left")
 
         # Loading / Status badge
         self.status_badge = tk.Label(
-            header_frame,
+            brand_group,
             text="⚡ Naming...",
             font=("Segoe UI", 8, "bold"),
-            fg="#f9e2af",
-            bg="#313244",
-            padx=6,
-            pady=1
+            fg=self.ACCENT_AMBER,
+            bg=self.CARD_INNER,
+            padx=8,
+            pady=2,
+            relief="flat"
         )
         self.status_badge.pack(side="left", padx=(10, 0))
 
-        # Close button (✕)
-        close_btn = tk.Label(
+        # Close button (✕) with hover state
+        self.close_btn = tk.Label(
             header_frame,
             text="✕",
             font=("Segoe UI", 10, "bold"),
-            fg="#a6adc8",
-            bg="#1e1e2e",
+            fg=self.TEXT_MUTED,
+            bg=self.CARD_BG,
             cursor="hand2"
         )
-        close_btn.pack(side="right")
-        close_btn.bind("<Button-1>", lambda e: self._on_confirm_click())
-        close_btn.bind("<Enter>", lambda e: close_btn.config(fg="#f38ba8"))
-        close_btn.bind("<Leave>", lambda e: close_btn.config(fg="#a6adc8"))
+        self.close_btn.pack(side="right")
+        self.close_btn.bind("<Button-1>", lambda e: self._on_confirm_click())
+        self.close_btn.bind("<Enter>", lambda e: self.close_btn.config(fg=self.ACCENT_ROSE))
+        self.close_btn.bind("<Leave>", lambda e: self.close_btn.config(fg=self.TEXT_MUTED))
 
         # Middle section: Thumbnail preview + Title input
-        content_frame = tk.Frame(main_card, bg="#1e1e2e")
+        content_frame = tk.Frame(main_card, bg=self.CARD_BG)
         content_frame.pack(fill="both", expand=True, pady=(0, 10))
 
-        # Thumbnail
-        self.thumb_label = tk.Label(content_frame, bg="#181825", relief="solid", bd=1)
-        self.thumb_label.pack(side="left", padx=(0, 12))
+        # Thumbnail Container with crisp glowing border
+        thumb_border = tk.Frame(content_frame, bg=self.CARD_INNER, padx=1, pady=1)
+        thumb_border.pack(side="left", padx=(0, 14))
+
+        self.thumb_label = tk.Label(thumb_border, bg=self.BG_DARK, relief="flat")
+        self.thumb_label.pack()
         self._load_thumbnail()
 
         # Input & details column
-        input_col = tk.Frame(content_frame, bg="#1e1e2e")
+        input_col = tk.Frame(content_frame, bg=self.CARD_BG)
         input_col.pack(side="left", fill="both", expand=True)
 
-        input_label = tk.Label(
+        self.input_label = tk.Label(
             input_col,
-            text="Screenshot Title:",
-            font=("Segoe UI", 8),
-            fg="#a6adc8",
-            bg="#1e1e2e",
+            text="Target Filename:",
+            font=("Segoe UI", 8, "bold"),
+            fg=self.TEXT_SECONDARY,
+            bg=self.CARD_BG,
             anchor="w"
         )
-        input_label.pack(fill="x", pady=(0, 2))
+        self.input_label.pack(fill="x", pady=(0, 3))
+
+        # Input container with dark inset
+        entry_border = tk.Frame(input_col, bg=self.BORDER_SUBTLE, padx=1, pady=1)
+        entry_border.pack(fill="x", pady=(0, 4))
+        self.entry_border = entry_border
 
         # Editable Title Entry
         self.title_var = tk.StringVar(value="Naming in progress...")
         self.entry = tk.Entry(
-            input_col,
+            entry_border,
             textvariable=self.title_var,
-            font=("Segoe UI", 10),
-            bg="#313244",
-            fg="#cdd6f4",
-            insertbackground="#cdd6f4",
+            font=("Consolas", 9, "bold"),
+            bg=self.INPUT_BG,
+            fg=self.ACCENT_CYAN,
+            insertbackground=self.ACCENT_CYAN,
             relief="flat",
-            bd=5
+            bd=6
         )
-        self.entry.pack(fill="x", pady=(0, 4))
+        self.entry.pack(fill="x")
         self.entry.config(state="disabled")
 
         # Bind user interaction events to stop countdown timer immediately
@@ -142,30 +177,48 @@ class ScreenshotPopup(tk.Toplevel):
         self.entry.bind("<Key>", self._on_user_started_editing)
         self.entry.bind("<FocusIn>", self._on_user_focus)
 
-        # Bottom row: Countdown timer & Save button
-        bottom_frame = tk.Frame(main_card, bg="#1e1e2e")
+        # Animated Progress Bar Canvas
+        self.progress_canvas = tk.Canvas(
+            main_card,
+            height=4,
+            bg=self.CARD_INNER,
+            highlightthickness=0,
+            relief="flat"
+        )
+        self.progress_canvas.pack(fill="x", pady=(0, 10))
+        self._progress_bar_rect = self.progress_canvas.create_rectangle(
+            0, 0, 380, 4,
+            fill=self.ACCENT_CYAN,
+            outline=""
+        )
+
+        # Bottom row: Countdown timer & Save/Undo buttons
+        bottom_frame = tk.Frame(main_card, bg=self.CARD_BG)
         bottom_frame.pack(fill="x")
 
         self.timer_label = tk.Label(
             bottom_frame,
             text="Waiting for title...",
             font=("Segoe UI", 8),
-            fg="#89b4fa",
-            bg="#1e1e2e"
+            fg=self.TEXT_SECONDARY,
+            bg=self.CARD_BG
         )
         self.timer_label.pack(side="left")
 
+        actions_group = tk.Frame(bottom_frame, bg=self.CARD_BG)
+        actions_group.pack(side="right")
+
         self.save_btn = tk.Button(
-            bottom_frame,
+            actions_group,
             text="Save (Enter)",
             font=("Segoe UI", 8, "bold"),
-            bg="#89b4fa",
-            fg="#11111b",
-            activebackground="#b4befe",
-            activeforeground="#11111b",
+            bg=self.ACCENT_CYAN,
+            fg=self.BG_DARK,
+            activebackground="#22D3EE",
+            activeforeground=self.BG_DARK,
             relief="flat",
-            padx=10,
-            pady=2,
+            padx=12,
+            pady=3,
             cursor="hand2",
             command=self._on_confirm_click
         )
@@ -177,18 +230,18 @@ class ScreenshotPopup(tk.Toplevel):
             if self.image_path.exists():
                 with Image.open(self.image_path) as img:
                     img = img.convert("RGB")
-                    img.thumbnail((120, 80), Image.Resampling.LANCZOS)
+                    img.thumbnail((110, 75), Image.Resampling.LANCZOS)
                     self._thumbnail_photo = ImageTk.PhotoImage(img, master=self)
                     self.thumb_label.config(image=self._thumbnail_photo)
         except Exception as e:
             logger.warning(f"Could not load thumbnail for '{self.image_path}': {e}")
-            self.thumb_label.config(text="No Preview", width=12, height=4, fg="#a6adc8")
+            self.thumb_label.config(text="No Preview", width=12, height=4, fg=self.TEXT_MUTED)
 
     def _position_window(self):
         """Position the popup in the bottom-right corner above the taskbar."""
         self.update_idletasks()
-        popup_width = 380
-        popup_height = 160
+        popup_width = 400
+        popup_height = 175
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
 
@@ -206,13 +259,24 @@ class ScreenshotPopup(tk.Toplevel):
         self.title_var.set(generated_title)
         self.entry.config(state="normal")
 
-        # Update status badge
-        self.status_badge.config(text="✓ AI Ready", fg="#a6e3a1", bg="#313244")
+        # Update status badge with bright emerald color
+        self.status_badge.config(text="✓ AI Ready", fg=self.ACCENT_EMERALD, bg=self.CARD_INNER)
 
         # Start 5-second countdown timer (if user hasn't already started typing)
         if not self._is_editing:
             self._remaining_time = float(self.duration_seconds)
             self._start_countdown()
+
+    def _on_mouse_enter(self, event=None):
+        """Pause countdown when user hovers mouse over popup to give them time to inspect."""
+        if self._timer_running and not self._is_editing and not self._is_closed:
+            self._is_hovered = True
+            self.timer_label.config(text="⏸ Paused on hover", fg=self.ACCENT_CYAN)
+
+    def _on_mouse_leave(self, event=None):
+        """Resume countdown when mouse leaves popup."""
+        if self._timer_running and not self._is_editing and not self._is_closed:
+            self._is_hovered = False
 
     def _on_user_focus(self, event=None):
         """Handle focus on the text box."""
@@ -234,10 +298,14 @@ class ScreenshotPopup(tk.Toplevel):
             except Exception:
                 pass
 
-        # Update labels to clearly indicate editing mode without auto-dismiss
-        self.timer_label.config(text="✏️ Editing mode (timer stopped)", fg="#f9e2af")
-        self.status_badge.config(text="✎ Custom Edit", fg="#f9e2af", bg="#313244")
-        self.save_btn.config(bg="#a6e3a1", text="Save (Enter)")
+        # Update UI to custom editing mode
+        self.input_label.config(text="Custom Title (Editing):", fg=self.ACCENT_AMBER)
+        self.entry_border.config(bg=self.ACCENT_AMBER)
+        self.timer_label.config(text="✏️ Custom Mode (Timer stopped)", fg=self.ACCENT_AMBER)
+        self.status_badge.config(text="✎ Custom Edit", fg=self.ACCENT_AMBER, bg=self.CARD_INNER)
+        self.save_btn.config(bg=self.ACCENT_EMERALD, fg=self.BG_DARK, text="Save (Enter)")
+        self.progress_canvas.coords(self._progress_bar_rect, 0, 0, 400, 4)
+        self.progress_canvas.itemconfig(self._progress_bar_rect, fill=self.ACCENT_AMBER)
 
     def _start_countdown(self):
         """Begin counting down to auto-dismiss."""
@@ -253,8 +321,16 @@ class ScreenshotPopup(tk.Toplevel):
             self._on_confirm_click()
             return
 
-        self.timer_label.config(text=f"Auto-saving in {int(self._remaining_time + 0.9)}s...")
-        self._remaining_time -= 0.1
+        # Only decrement time if not hovered
+        if not self._is_hovered:
+            self.timer_label.config(text=f"Auto-saving in {self._remaining_time:.1f}s...")
+            self._remaining_time -= 0.1
+            
+            # Animate progress bar fill
+            ratio = max(0.0, self._remaining_time / float(self.duration_seconds))
+            width = int(400 * ratio)
+            self.progress_canvas.coords(self._progress_bar_rect, 0, 0, width, 4)
+
         self._timer_job = self.after(100, self._tick_timer)
 
     def _on_confirm_click(self):
@@ -298,24 +374,43 @@ class PopupManager:
         self._root: Optional[tk.Tk] = None
         self._thread: Optional[threading.Thread] = None
         self._ready_event = threading.Event()
-        self._active_popup: Optional[ScreenshotPopup] = None
-        self._lock = threading.Lock()
-        self._start_ui_thread()
+        self._task_queue: queue.Queue = queue.Queue()
+        self._is_running = False
 
-    def _start_ui_thread(self):
-        """Initialize Tkinter instance in background thread."""
-        def ui_loop():
-            try:
-                self._root = tk.Tk()
-                self._root.withdraw()  # Hide root master window
-                self._ready_event.set()
-                self._root.mainloop()
-            except Exception as e:
-                logger.error(f"Tkinter mainloop encountered error: {e}", exc_info=True)
+        self._start_thread()
 
-        self._thread = threading.Thread(target=ui_loop, daemon=True, name="SnapTitle-UI")
+    def _start_thread(self):
+        """Start the background Tkinter GUI event loop thread."""
+        self._is_running = True
+        self._thread = threading.Thread(target=self._run_tk_loop, daemon=True, name="SnapTitlePopupThread")
         self._thread.start()
-        self._ready_event.wait(timeout=3.0)
+        self._ready_event.wait(timeout=5.0)
+
+    def _run_tk_loop(self):
+        """Background thread target function hosting the Tk root instance."""
+        try:
+            self._root = tk.Tk()
+            self._root.withdraw()
+            self._ready_event.set()
+
+            def process_queue():
+                try:
+                    while not self._task_queue.empty():
+                        fn = self._task_queue.get_nowait()
+                        fn()
+                except Exception as e:
+                    logger.error(f"Error processing task in Tkinter queue: {e}", exc_info=True)
+                finally:
+                    if self._is_running and self._root:
+                        self._root.after(50, process_queue)
+
+            self._root.after(50, process_queue)
+            self._root.mainloop()
+        except Exception as e:
+            logger.error(f"Tkinter mainloop failed: {e}", exc_info=True)
+        finally:
+            self._is_running = False
+            self._ready_event.set()
 
     def show_popup_and_wait(
         self,
@@ -324,66 +419,69 @@ class PopupManager:
         duration_seconds: int = 5,
         fallback_title: str = "screenshot"
     ) -> str:
-        """Display popup in loading state, resolve title in background, and wait for user confirm/timeout.
+        """Display the floating popup, resolve title in background, and block caller until dismissal.
 
         Args:
-            image_path: Path to the screenshot file.
-            title_resolver: Function that executes OCR/VLM/LLM to generate title.
-            duration_seconds: Duration before auto-save countdown dismisses (default: 5).
-            fallback_title: Fallback title if resolution fails.
+            image_path: Path to screenshot.
+            title_resolver: Callable returning the AI generated title.
+            duration_seconds: Countdown seconds before auto-dismissal.
+            fallback_title: Default title if resolution fails.
 
         Returns:
-            str: Final title (either AI generated or edited by user).
+            str: The confirmed title string.
         """
-        if not self._root:
-            logger.warning("Tkinter root not ready. Running direct resolution without popup.")
-            try:
-                return title_resolver()
-            except Exception:
-                return fallback_title
+        if not self._is_running or not self._root:
+            logger.warning("PopupManager GUI thread is not running. Falling back to direct resolution.")
+            return title_resolver()
 
-        result_queue: queue.Queue[str] = queue.Queue(maxsize=1)
-        popup_ref: list[Optional[ScreenshotPopup]] = [None]
+        resolved_title_holder = [fallback_title]
+        dismiss_event = threading.Event()
+        popup_holder = [None]
 
         def create_popup():
+            def on_confirmed(confirmed_title: str):
+                resolved_title_holder[0] = confirmed_title
+                dismiss_event.set()
+
+            popup = ScreenshotPopup(
+                master=self._root,
+                image_path=image_path,
+                duration_seconds=duration_seconds,
+                on_confirmed=on_confirmed
+            )
+            popup_holder[0] = popup
+
+        self._task_queue.put(create_popup)
+
+        # Resolve title in background worker thread so UI is never frozen
+        def resolve_worker():
             try:
-                popup = ScreenshotPopup(
-                    master=self._root,
-                    image_path=image_path,
-                    duration_seconds=duration_seconds,
-                    on_confirmed=lambda title: result_queue.put(title)
-                )
-                popup_ref[0] = popup
-                self._active_popup = popup
+                title = title_resolver()
+                if not title:
+                    title = fallback_title
+
+                def update_ui():
+                    if popup_holder[0]:
+                        popup_holder[0].set_title(title)
+
+                self._task_queue.put(update_ui)
             except Exception as e:
-                logger.error(f"Failed to create popup: {e}", exc_info=True)
-                result_queue.put(fallback_title)
+                logger.error(f"Error in title resolver worker: {e}")
 
-        # 1. Schedule popup creation on Tkinter thread
-        self._root.after(0, create_popup)
+        worker = threading.Thread(target=resolve_worker, daemon=True)
+        worker.start()
 
-        # 2. Resolve title in current worker thread (OCR / LLM / VLM)
-        generated_title = fallback_title
-        try:
-            generated_title = title_resolver() or fallback_title
-        except Exception as e:
-            logger.error(f"Title resolution failed: {e}", exc_info=True)
-            generated_title = fallback_title
+        # Wait for popup confirmation/auto-save (with fallback timeout)
+        wait_timeout = duration_seconds + 30
+        dismiss_event.wait(timeout=wait_timeout)
 
-        # 3. Update popup with resolved title and start timer
-        def update_popup_title():
-            if popup_ref[0] and not popup_ref[0]._is_closed:
-                popup_ref[0].set_title(generated_title)
+        return resolved_title_holder[0]
 
-        self._root.after(0, update_popup_title)
-
-        # 4. Wait for user edit, early close, or countdown timer expiration
-        # If user edits, window stays open until they click Save, so we allow generous wait time
-        try:
-            final_title = result_queue.get(timeout=600.0)  # Up to 10 minutes for manual editing
-            return final_title
-        except queue.Empty:
-            logger.warning("Popup timed out without response. Using generated title.")
-            if popup_ref[0]:
-                self._root.after(0, popup_ref[0]._on_confirm_click)
-            return generated_title
+    def shutdown(self):
+        """Cleanly close the GUI thread and destroy root window."""
+        self._is_running = False
+        if self._root:
+            try:
+                self._root.quit()
+            except Exception:
+                pass

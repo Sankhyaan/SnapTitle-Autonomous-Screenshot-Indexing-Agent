@@ -17,6 +17,7 @@ from .watcher import ScreenshotWatcher
 from .ocr import extract_text_from_image, has_meaningful_text
 from .llm import generate_title_from_text, generate_disambiguated_title, clean_llm_response
 from .vlm import generate_caption_from_image
+from .gemini import generate_title_and_caption_with_gemini
 from .popup import PopupManager
 from .database import DatabaseManager
 from config.config import Config, load_config
@@ -59,17 +60,13 @@ class SnapTitleService:
         )
 
     def generate_title_and_context_for_screenshot(self, screenshot_path: Path) -> Tuple[str, str]:
-        """Run the dual-path OCR + VLM titling pipeline and return (title, context_content).
+        """Run the titling pipeline and return (title, context_content).
 
-        Branching Logic:
-        1. Extract text via OCR.
-        2. Branch:
-           - Text Path (>=5 chars): OCR text -> LLM -> Title.
-           - Vision Path (<5 chars): VLM caption -> LLM -> Title.
-        3. Pre-Popup Collision Disambiguation:
-           - If title collides, queries LLM up to 2 times for a more specific distinct title.
-        4. Error Resilience:
-           - If OCR/VLM/LLM fails or Ollama is offline, falls back safely to 'screenshot'.
+        Pipeline Strategy:
+        1. If Gemini AI provider is enabled with an API key, run direct Multimodal Vision.
+        2. Otherwise (or as fallback), run local dual-path OCR + VLM (Tesseract + Ollama).
+        3. Pre-Popup Collision Disambiguation.
+        4. Error Resilience: safe fallback if all providers fail.
 
         Args:
             screenshot_path: Path to the screenshot file.
@@ -82,6 +79,21 @@ class SnapTitleService:
             custom_title = self.title_provider(screenshot_path)
             if custom_title:
                 return custom_title, "Custom title override"
+
+        # Step 0: Google Gemini Multimodal Vision (High Accuracy & Fast)
+        if getattr(self.config, "ai_provider", "gemini") == "gemini" and getattr(self.config, "gemini_api_key", None):
+            try:
+                gemini_res = generate_title_and_caption_with_gemini(
+                    image_path=screenshot_path,
+                    api_key=self.config.gemini_api_key,
+                    model=getattr(self.config, "gemini_model", "gemini-2.5-flash")
+                )
+                if gemini_res:
+                    gemini_title, gemini_content = gemini_res
+                    logger.info(f"Gemini resolved title for '{screenshot_path.name}': '{gemini_title}'")
+                    return gemini_title, gemini_content
+            except Exception as gemini_err:
+                logger.warning(f"Gemini processing error: {gemini_err}. Falling back to local OCR/VLM pipeline.")
 
         context_text = ""
         initial_title: Optional[str] = None

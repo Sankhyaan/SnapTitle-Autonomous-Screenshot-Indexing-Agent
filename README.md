@@ -1,58 +1,61 @@
-# SnapTitle
-### An OCR, LLM & VLM-Driven Automation Engine for Intelligent Screenshot Indexing
+# SnapTitle 📸
+### Autonomous Multimodal Screenshot Indexing & Semantic Renaming Agent
 
-Real-time screenshot understanding, powered by local OCR, LLM & VLM inference.
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
+[![AI Provider](https://img.shields.io/badge/AI%20Provider-Gemini%20%7C%20Ollama-orange.svg)](https://ai.google.dev/)
+[![Search](https://img.shields.io/badge/Search-SQLite%20FTS5-green.svg)](https://www.sqlite.org/fts5.html)
+[![License](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
 
----
-
-## 📌 Project Overview
-
-**SnapTitle** is a fully local desktop automation engine designed to watch your operating system's screenshot directory and instantly transform raw, obscurely named screenshots into organized, meaningful, and searchable captures.
-
-### 🔒 Core Principles
-- **100% Local & Private:** All processing runs entirely on your local machine using local OCR and local AI models via Ollama. No cloud APIs, no external telemetry, and no data ever leaves your computer.
-- **Cheap-First, Vision-Fallback Pipeline:** Fast text extraction via OCR for documents, chats, and receipts, with a lightweight local Vision-Language Model (VLM) fallback for textless diagrams, photos, and icon-only interfaces.
-- **Safe & Deterministic Renaming:** Native OS collision prevention, length limits, character sanitization, and timestamp preservation.
-- **Interactive Popup Notification:** Floating on-screen card with live preview, editable title, and auto-dismiss timer.
-- **Full-Text SQLite Search Index:** Historical logging and keyword search across past screenshots and extracted text.
+**SnapTitle** is an autonomous desktop background agent that intercepts screenshot creation events in real time, extracts visual and OCR context using **Google Gemini Multimodal Vision** or **Local Ollama Models**, intelligently generates clean semantic filenames, and indexes all visual text into a local **SQLite FTS5 Full-Text Search** database.
 
 ---
 
-## 📂 Project Structure
+## ✨ Key Features
+
+- ⚡ **Autonomous Watchdog Interception:** Attaches seamlessly to your OS screenshot folder (`Win + PrtScn`, `Win + Shift + S`, Snipping Tool, macOS `Cmd + Shift + 4`).
+- 🧠 **Dual AI Provider Architecture:**
+  - **Cloud Multimodal (Google Gemini 2.5 Flash / Flash Lite):** Instant visual layout, OCR, and semantic naming with automated multi-model rate-limit failover.
+  - **100% Local & Private (Tesseract + Ollama):** Runs completely offline using Llama 3.2 and Moondream / LLaVA with zero external telemetry.
+- 🔀 **Dual-Path Routing:** Automatically evaluates text density to choose between high-speed OCR-LLM extraction and zero-shot Vision-Language scene understanding.
+- 🎨 **Floating Tkinter HUD Notification:** Displays real-time thumbnail preview, countdown timer, editable title field, and auto-dismiss confirm.
+- 🔍 **SQLite FTS5 Deep Retrieval Engine:** Search through historical screenshots by keywords, invoice numbers, error codes, chat dialogue, or dates.
+- 🌐 **Interactive Web Simulator & Visualizer:** Built-in localhost UI for drag-and-drop live testing, stage-by-stage node inspection, and retrieval exploring.
+- ⏪ **Non-Destructive Reversals:** One-click instant undo to restore any file back to its original OS timestamp filename.
+
+---
+
+## 📂 Project Architecture
 
 ```text
 SnapTitle/
 ├── config/
-│   ├── __init__.py
-│   ├── config.py              # Configuration manager & OS screenshot folder auto-detection
-│   └── default_config.yaml    # Application settings (models, timeouts, paths)
+│   ├── config.py              # Configuration loader & OS screenshot folder auto-detection
+│   └── default_config.yaml    # Application settings (AI provider, models, timeouts, paths)
 ├── data/                      # Local SQLite database directory
+│   └── snaptitle.db           # SQLite database with FTS5 virtual tables
 ├── src/
-│   ├── __init__.py            # Package exports
-│   ├── core.py                # Main orchestrator pipeline
-│   ├── database.py            # SQLite storage & FTS5 full-text search index
-│   ├── llm.py                 # Local LLM prompt engineering & title cleaning
-│   ├── naming.py              # Filename sanitization & collision resolution
+│   ├── core.py                # Main orchestrator service & background daemon
+│   ├── gemini.py              # Google Gemini 2.5 Flash Multimodal Vision engine
 │   ├── ocr.py                 # Tesseract OCR text extraction
-│   ├── popup.py               # Floating on-screen notification & editor UI
+│   ├── llm.py                 # Local LLM titling & sanitization
+│   ├── vlm.py                 # Local Vision-Language Model captioning
+│   ├── watcher.py             # Watchdog filesystem observer
+│   ├── naming.py              # Snake_case sanitization & duplicate disambiguation
 │   ├── renamer.py             # Atomic file moving & lock handling
-│   ├── vlm.py                 # Vision model image captioning
-│   └── watcher.py             # Watchdog filesystem observer
-├── tests/
-│   ├── __init__.py
-│   ├── test_env.py
-│   ├── test_detection_and_renaming.py
-│   ├── test_ocr_llm_titling.py
-│   ├── test_vlm_fallback.py
-│   ├── test_popup_ui.py
-│   ├── test_smart_duplicate_resolution.py
-│   └── test_search_and_database.py
-├── .gitignore
-├── requirements.txt
-├── main.py                    # Application entry point
-├── search.py                  # CLI search tool
-├── undo.py                    # Rename undo utility
-└── README.md
+│   ├── popup.py               # Desktop Tkinter HUD notification
+│   └── database.py            # SQLite storage & FTS5 full-text search index
+├── web_demo/                  # Interactive visual simulation workspace
+│   ├── index.html             # Web visualizer markup
+│   ├── styles.css             # Glassmorphism dark-mode UI
+│   ├── app.js                 # Real-time WebSocket/REST orchestrator
+│   └── images/                # Scenario presets
+├── tests/                     # 7 comprehensive test suites
+├── demo_server.py             # Local HTTP REST server for web visualizer
+├── main.py                    # Autonomous background daemon entrypoint
+├── search.py                  # CLI search and database management tool
+├── undo.py                    # CLI undo utility
+├── run_tests.py               # Test runner script
+└── requirements.txt           # Python dependencies
 ```
 
 ---
@@ -61,17 +64,8 @@ SnapTitle/
 
 ### 1. Prerequisites
 - **Python 3.10+** (Tested on Python 3.11 & 3.13)
-- **Tesseract OCR:** 
-  - Windows: Installed to standard path or added to `PATH` (e.g. `C:\Program Files\Tesseract-OCR\tesseract.exe`)
-  - macOS: `brew install tesseract`
-  - Linux: `sudo apt-get install tesseract-ocr`
-- **Ollama:**
-  - Local AI daemon running locally at `http://127.0.0.1:11434`
-  - Required local models:
-    ```bash
-    ollama pull llama3.2:3b
-    ollama pull moondream:latest
-    ```
+- *(Optional for Cloud Mode)*: [Google AI Studio Gemini API Key](https://aistudio.google.com/)
+- *(Optional for 100% Local Mode)*: [Tesseract OCR](https://github.com/tesseract-ocr/tesseract) and [Ollama](https://ollama.com/)
 
 ### 2. Installation
 ```bash
@@ -85,33 +79,80 @@ pip install -r requirements.txt
 
 ---
 
-## 💻 Usage
+## 💻 Terminal Commands & Walkthrough
 
-### 1. Run Background Automation
-```bash
+### 1. Run the Autonomous Background Daemon
+Runs in the background and watches your desktop screenshot folder continuously:
+```powershell
 python main.py
 ```
-Take any screenshot using your standard OS shortcut (`Win + PrtScn`, `Win + Shift + S`, or `Cmd + Shift + 4`). SnapTitle will automatically display the preview card, generate the title, and rename the file.
+*Take any screenshot (`Win + PrtScn` or `Win + Shift + S`). SnapTitle will automatically detect it, run Gemini vision analysis, pop up the desktop HUD, rename the file, and index the content!*
 
-### 2. Search Past Screenshots
-Search through historical screenshots by keywords, error codes, invoice IDs, topics, or dates:
-```bash
+---
+
+### 2. Run the Interactive Web Visualizer
+Launch the interactive web-based testing studio:
+```powershell
+python demo_server.py --port 8080
+```
+Open **`http://127.0.0.1:8080`** in your browser to test preset scenarios, upload custom screenshots, and inspect the real-time node flow.
+
+---
+
+### 3. Retrieve Screenshots from Terminal (`search.py`)
+
+`search.py` queries the SQLite FTS5 index across full OCR text, VLM scene descriptions, and filenames:
+
+#### 🔹 Basic Keyword & Content Search:
+```powershell
+python search.py "invoice"
 python search.py "kubernetes crashloop"
-python search.py "billing invoice"
-python search.py --recent 10
-python search.py --date 2026-08-15
-python search.py --start-date 2026-08-01 --end-date 2026-08-18
-python search.py "docker" --json
-python search.py "database" --csv
-python search.py --stats
-python search.py --check
-python search.py --backup "data/backups/snaptitle_backup.db"
-python search.py --purge
+python search.py "bgp"
+python search.py "142.50"
+python search.py "exit code 137"
 ```
 
-### 3. Undo Last Rename
-Revert the most recent rename back to its original filename:
-```bash
+#### 🔹 Date & Date Range Filtering:
+```powershell
+# Search by exact date
+python search.py --date 2026-08-24
+
+# Search within a date range
+python search.py --start-date 2026-08-01 --end-date 2026-08-24
+```
+
+#### 🔹 View Recent Captures:
+```powershell
+# View last 10 processed screenshots
+python search.py --recent
+
+# View last 5 processed screenshots
+python search.py --recent 5
+```
+
+#### 🔹 Export Results (JSON / CSV):
+```powershell
+python search.py "docker" --json
+python search.py "database" --csv
+```
+
+#### 🔹 Database Stats & Health Checks:
+```powershell
+# View total count of indexed screenshots
+python search.py --stats
+
+# Run full system dependency check
+python search.py --check
+
+# Backup SQLite database
+python search.py --backup "data/snaptitle_backup.db"
+```
+
+---
+
+### 4. Undo the Last Rename
+To instantly revert the most recent rename back to its original OS filename:
+```powershell
 python undo.py
 # or
 python search.py --undo
@@ -119,41 +160,39 @@ python search.py --undo
 
 ---
 
-## ⚙️ Configuration & Environment Variables
+## ⚙️ Configuration
 
-SnapTitle can be configured via `config/default_config.yaml` or environment variables:
+Configure via `config/default_config.yaml` or environment variables:
 
 | Variable | Description | Default |
 |---|---|---|
-| `SNAPTITLE_SCREENSHOTS_DIR` | Custom screenshot directory path | OS Auto-detected |
-| `SNAPTITLE_DATABASE_PATH` | SQLite database file location | `data/snaptitle.db` |
-| `SNAPTITLE_LLM_MODEL` | Ollama model identifier for text titling | `llama3.2:3b` |
-| `SNAPTITLE_VLM_MODEL` | Ollama model identifier for vision captioning | `moondream:latest` |
-| `SNAPTITLE_OLLAMA_HOST` | Ollama daemon host URL | `http://127.0.0.1:11434` |
-| `SNAPTITLE_LLM_TIMEOUT` | Ollama LLM request timeout in seconds | `60.0` |
-| `SNAPTITLE_VLM_TIMEOUT` | Ollama VLM request timeout in seconds | `60.0` |
-| `SNAPTITLE_SHOW_POPUP` | Enable/disable desktop popup UI (`1`/`0`) | `1` (Enabled) |
-| `SNAPTITLE_POPUP_DURATION` | Popup countdown timer in seconds | `5` |
-| `SNAPTITLE_TESSERACT_CMD` | Explicit path to Tesseract binary | Auto-detected |
-
-Supported Image Formats: `.png`, `.jpg`, `.jpeg`, `.webp`, `.bmp`, `.tiff`, `.tif` (case-insensitive).
+| `SNAPTITLE_AI_PROVIDER` | AI Provider: `gemini` (Cloud) or `ollama` (Local) | `gemini` |
+| `GEMINI_API_KEY` | Google Gemini API Key | Set in config or env |
+| `SNAPTITLE_GEMINI_MODEL` | Primary Gemini model identifier | `gemini-2.5-flash` |
+| `SNAPTITLE_SCREENSHOTS_DIR` | Custom screenshot folder path | OS Auto-detected |
+| `SNAPTITLE_DATABASE_PATH` | SQLite database file destination | `data/snaptitle.db` |
+| `SNAPTITLE_SHOW_POPUP` | Enable/disable desktop HUD popup (`1`/`0`) | `1` (Enabled) |
+| `SNAPTITLE_POPUP_DURATION` | HUD auto-save countdown in seconds | `5` |
+| `SNAPTITLE_LLM_MODEL` | Ollama model for local text titling | `llama3.2:3b` |
+| `SNAPTITLE_VLM_MODEL` | Ollama model for local vision captioning | `moondream:latest` |
 
 ---
 
-## 🧪 Running Tests
+## 🧪 Running Automated Tests
 
-Run the automated test runner script to verify all 7 project test modules:
-```bash
+Run the full automated test suite covering all 7 modules:
+```powershell
 python run_tests.py
 ```
 
-Or run individual test modules directly:
-```bash
-python -m unittest tests.test_env
-python -m unittest tests.test_detection_and_renaming
-python -m unittest tests.test_ocr_llm_titling
-python -m unittest tests.test_vlm_fallback
-python -m unittest tests.test_popup_ui
-python -m unittest tests.test_smart_duplicate_resolution
+Or execute specific unit tests:
+```powershell
 python -m unittest tests.test_search_and_database
+python -m unittest tests.test_detection_and_renaming
+python -m unittest tests.test_smart_duplicate_resolution
 ```
+
+---
+
+## 📄 License
+Distributed under the MIT License. See `LICENSE` for details.

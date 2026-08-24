@@ -174,6 +174,9 @@ class Config:
     screenshots_dir: Path = field(default_factory=get_default_screenshots_dir)
     show_popup: bool = True
     popup_duration_seconds: int = 5
+    ai_provider: str = "gemini"  # 'gemini' or 'ollama'
+    gemini_api_key: Optional[str] = None
+    gemini_model: str = "gemini-2.5-flash"
     llm_model: str = "llama3.2:3b"
     vlm_model: str = "llava:7b"
     ollama_host: str = "http://127.0.0.1:11434"
@@ -210,6 +213,8 @@ class Config:
             "screenshots_dir": str(self.screenshots_dir),
             "show_popup": self.show_popup,
             "popup_duration_seconds": self.popup_duration_seconds,
+            "ai_provider": self.ai_provider,
+            "gemini_model": self.gemini_model,
             "llm_model": self.llm_model,
             "vlm_model": self.vlm_model,
             "ollama_host": self.ollama_host,
@@ -243,6 +248,21 @@ def load_config(config_path: Optional[Union[str, Path]] = None) -> Config:
     Returns:
         Config: Populated configuration object.
     """
+    # Auto-load .env file if present in project root
+    env_file = Path(__file__).resolve().parent.parent / ".env"
+    if env_file.exists():
+        try:
+            with open(env_file, "r", encoding="utf-8") as ef:
+                for line in ef:
+                    line = line.strip()
+                    if line and not line.startswith("#") and "=" in line:
+                        k, v = line.split("=", 1)
+                        k, v = k.strip(), v.strip().strip("'\"")
+                        if k and k not in os.environ:
+                            os.environ[k] = v
+        except Exception:
+            pass
+
     default_file = Path(__file__).parent / "default_config.yaml"
     target_file = Path(config_path) if config_path else default_file
 
@@ -273,7 +293,11 @@ def load_config(config_path: Optional[Union[str, Path]] = None) -> Config:
     env_popup_dur = os.environ.get("SNAPTITLE_POPUP_DURATION")
     popup_duration = int(env_popup_dur) if env_popup_dur and env_popup_dur.isdigit() else int(data.get("popup_duration_seconds", 5))
 
-    # Models & Hosts
+    # AI Provider & Models
+    ai_provider = os.environ.get("SNAPTITLE_AI_PROVIDER", str(data.get("ai_provider", "gemini")))
+    gemini_api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("SNAPTITLE_GEMINI_API_KEY") or data.get("gemini_api_key")
+    gemini_model = os.environ.get("SNAPTITLE_GEMINI_MODEL", str(data.get("gemini_model", "gemini-2.5-flash")))
+
     llm_model = os.environ.get("SNAPTITLE_LLM_MODEL", str(data.get("llm_model", "llama3.2:3b")))
     vlm_model = os.environ.get("SNAPTITLE_VLM_MODEL", str(data.get("vlm_model", "llava:7b")))
     ollama_host = os.environ.get("SNAPTITLE_OLLAMA_HOST", str(data.get("ollama_host", "http://127.0.0.1:11434")))
@@ -285,6 +309,9 @@ def load_config(config_path: Optional[Union[str, Path]] = None) -> Config:
         screenshots_dir=screenshots_dir,
         show_popup=show_popup,
         popup_duration_seconds=popup_duration,
+        ai_provider=ai_provider,
+        gemini_api_key=gemini_api_key,
+        gemini_model=gemini_model,
         llm_model=llm_model,
         vlm_model=vlm_model,
         ollama_host=ollama_host,
