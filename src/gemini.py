@@ -108,9 +108,16 @@ def generate_title_and_caption_with_gemini(
 
     payload_bytes = json.dumps(payload).encode("utf-8")
 
-    # Cascading list of models to try in case of 429 rate limit or 404
+    # Cascading list of models to try in case of 429 rate limit or 404.
+    # Free-tier RPM: gemini-2.5-flash=10, gemini-1.5-flash=15, gemini-1.5-flash-8b=15
     candidate_models = [model]
-    for m in ["gemini-flash-lite-latest", "gemini-2.5-flash", "gemini-flash-latest"]:
+    for m in [
+        "gemini-flash-lite-latest",   # lightest, fastest
+        "gemini-1.5-flash-8b",        # 15 RPM free tier
+        "gemini-1.5-flash",           # 15 RPM free tier
+        "gemini-2.5-flash",
+        "gemini-flash-latest",
+    ]:
         if m not in candidate_models:
             candidate_models.append(m)
 
