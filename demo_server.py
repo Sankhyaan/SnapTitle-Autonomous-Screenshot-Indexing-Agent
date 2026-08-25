@@ -55,6 +55,9 @@ class SnapTitleDemoHandler(SimpleHTTPRequestHandler):
     def _handle_static_file(self, filename: str, content_type: str):
         """Explicitly serve static assets like favicons with correct headers."""
         target = WEB_DEMO_DIR / filename
+        if not target.exists():
+            target = PROJECT_ROOT / filename
+
         if target.exists():
             with open(target, "rb") as f:
                 data = f.read()
