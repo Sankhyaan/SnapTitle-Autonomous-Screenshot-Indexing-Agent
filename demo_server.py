@@ -44,9 +44,29 @@ class SnapTitleDemoHandler(SimpleHTTPRequestHandler):
             self._handle_api_search(query)
         elif path == "/api/records":
             self._handle_api_records()
+        elif path == "/favicon.ico":
+            self._handle_static_file("favicon.ico", "image/x-icon")
+        elif path == "/favicon.svg":
+            self._handle_static_file("favicon.svg", "image/svg+xml")
         else:
             # Fallback to serving static files from web_demo/
             super().do_GET()
+
+    def _handle_static_file(self, filename: str, content_type: str):
+        """Explicitly serve static assets like favicons with correct headers."""
+        target = WEB_DEMO_DIR / filename
+        if target.exists():
+            with open(target, "rb") as f:
+                data = f.read()
+            self.send_response(200)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Cache-Control", "public, max-age=86400")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(data)
+        else:
+            self.send_error(404, "File not found")
 
     def do_OPTIONS(self):
         """Handle CORS preflight requests."""
