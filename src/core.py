@@ -86,7 +86,9 @@ class SnapTitleService:
                 gemini_res = generate_title_and_caption_with_gemini(
                     image_path=screenshot_path,
                     api_key=self.config.gemini_api_key,
-                    model=getattr(self.config, "gemini_model", "gemini-2.5-flash")
+                    model=getattr(self.config, "gemini_model", "gemini-3.7-flash"),
+                    timeout=8.0,
+                    max_retries=1
                 )
                 if gemini_res:
                     gemini_title, gemini_content = gemini_res

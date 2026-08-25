@@ -109,17 +109,16 @@ def generate_title_and_caption_with_gemini(
 
     payload_bytes = json.dumps(payload).encode("utf-8")
 
-    # Cascading model fallback list: tries newest/fastest first, falls back on 429/404.
-    # Gemini 3.x = latest (Aug 2026), 2.5/1.5 = stable fallbacks
+    # Cascading model fallback list: tries fastest/most responsive first, falls back on 429/404/timeout.
     candidate_models = [model]
     for m in [
-        "gemini-3.7-flash",       # newest workhorse — best for vision/agentic tasks
-        "gemini-3.6-flash",       # July 2026, high token efficiency
-        "gemini-3.5-flash-lite",  # lightest/fastest 3.x model
+        "gemini-3.6-flash",       # ultra fast sub-2s multimodal response
+        "gemini-3.5-flash-lite",  # lightest 3.x model
         "gemini-3.5-flash",       # May 2026 flagship
+        "gemini-3.7-flash",       # 3.7 flash
+        "gemini-1.5-flash",       # 15 RPM stable fallback
+        "gemini-1.5-flash-8b",    # 15 RPM lightweight fallback
         "gemini-flash-lite-latest",
-        "gemini-1.5-flash-8b",    # 15 RPM free tier fallback
-        "gemini-1.5-flash",       # 15 RPM free tier fallback
         "gemini-2.5-flash",
         "gemini-flash-latest",
     ]:
