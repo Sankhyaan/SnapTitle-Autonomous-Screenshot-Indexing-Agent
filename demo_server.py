@@ -155,6 +155,7 @@ class SnapTitleDemoHandler(SimpleHTTPRequestHandler):
                     "latency_ms": max(elapsed_ms, 85)
                 })
             else:
+                from src import gemini as gem_mod
                 today_str = datetime.now().strftime('%d-%m-%Y')
                 self._send_json_response({
                     "success": True,
@@ -162,7 +163,8 @@ class SnapTitleDemoHandler(SimpleHTTPRequestHandler):
                     "content": "Multimodal Vision Analysis: High-resolution interface scene indexed into SQLite FTS5 database.",
                     "final_filename": f"Autonomous Visual Interface Capture_{today_str}.png",
                     "date_stamp": today_str,
-                    "latency_ms": 60
+                    "latency_ms": 60,
+                    "debug_error": getattr(gem_mod, "LAST_GEMINI_ERROR", "")
                 })
         except Exception as e:
             logger.error(f"Error in /api/analyze: {e}")
@@ -173,7 +175,8 @@ class SnapTitleDemoHandler(SimpleHTTPRequestHandler):
                 "content": "Multimodal Vision Analysis: Extracted screenshot features and visual structure.",
                 "final_filename": f"Autonomous Visual Interface Capture_{today_str}.png",
                 "date_stamp": today_str,
-                "latency_ms": 50
+                "latency_ms": 50,
+                "debug_error": f"Exception: {e}"
             })
 
     def _fallback_semantic_analysis(self, image_path: Path, hint_name: str = "") -> Tuple[str, str]:

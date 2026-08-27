@@ -20,6 +20,7 @@ from .llm import clean_llm_response, redact_sensitive_info
 logger = logging.getLogger("snaptitle.gemini")
 
 GEMINI_API_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
+LAST_GEMINI_ERROR = ""
 
 DEFAULT_SYSTEM_INSTRUCTION = """You are an expert autonomous screenshot indexing and file naming engine.
 Your job is to analyze the provided screenshot image and generate:
@@ -51,6 +52,7 @@ def generate_title_and_caption_with_gemini(
     Supports multiple API keys (comma/semicolon separated in api_key or env vars) with
     automatic failover and rate-limit rotation.
     """
+    global LAST_GEMINI_ERROR
     import os
 
     # Collect all available API keys into a pool
@@ -187,8 +189,11 @@ def generate_title_and_caption_with_gemini(
                     title = re.sub(r'[\s]+', ' ', s3).strip()
                     title = re.sub(r'[^\w\s\-_.]', '', title).strip(' -_.')
                     
+LAST_GEMINI_ERROR = ""
+
                     if title:
                         logger.info(f"Gemini ({current_model}) successfully titled '{image_label}' -> '{title}'")
+                        LAST_GEMINI_ERROR = ""
                         return title, content_summary
 
                 except urllib.error.HTTPError as http_err:
@@ -197,13 +202,12 @@ def generate_title_and_caption_with_gemini(
                         error_body = http_err.read().decode("utf-8")
                     except Exception:
                         pass
-                    logger.warning(f"Gemini ({current_model}) [Key {key_masked}] HTTP {http_err.code}: {http_err.reason}")
-                    # If 429 quota reached on this key, skip to next key or next model immediately
-                    if http_err.code == 429:
-                        break
-                    if http_err.code == 404:
+                    LAST_GEMINI_ERROR = f"HTTP {http_err.code}: {http_err.reason} - {error_body[:150]}"
+                    logger.warning(f"Gemini ({current_model}) [Key {key_masked}] {LAST_GEMINI_ERROR}")
+                    if http_err.code == 429 or http_err.code == 404:
                         break
                 except Exception as err:
+                    LAST_GEMINI_ERROR = f"Error: {err}"
                     logger.warning(f"Gemini ({current_model}) [Key {key_masked}] attempt {attempt} error: {err}")
 
     return None
