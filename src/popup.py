@@ -8,14 +8,27 @@ import logging
 import threading
 from pathlib import Path
 from typing import Optional, Callable
-import tkinter as tk
-from tkinter import ttk
-from PIL import Image, ImageTk, ImageOps, ImageDraw
+try:
+    import tkinter as tk
+    from tkinter import ttk
+    HAS_TKINTER = True
+    BasePopupClass = tk.Toplevel
+except (ImportError, ModuleNotFoundError):
+    tk = None
+    ttk = None
+    HAS_TKINTER = False
+    BasePopupClass = object
+
+from PIL import Image, ImageOps, ImageDraw
+try:
+    from PIL import ImageTk
+except (ImportError, ModuleNotFoundError):
+    ImageTk = None
 
 logger = logging.getLogger("snaptitle.popup")
 
 
-class ScreenshotPopup(tk.Toplevel):
+class ScreenshotPopup(BasePopupClass):
     """Floating modern desktop HUD notification for newly detected screenshots."""
 
     # Curated color palette matching web design system
