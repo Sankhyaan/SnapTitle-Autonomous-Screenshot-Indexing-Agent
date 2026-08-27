@@ -75,7 +75,23 @@ cd SnapTitle-Autonomous-Screenshot-Indexing-Agent
 
 # Install Python dependencies
 pip install -r requirements.txt
+
+# Copy environment template
+cp .env.example .env
 ```
+
+### 3. Configuration & Screenshot Folder Setup
+SnapTitle is designed to work seamlessly out-of-the-box on any computer:
+
+- 🌟 **Automatic OS Detection (Zero-Config):** By default, SnapTitle automatically detects the current user's default screenshot folder across **Windows** (`Pictures/Screenshots` or active OneDrive registry path), **macOS** (`Desktop` or `Pictures/Screenshots`), and **Linux** (`$XDG_PICTURES_DIR/Screenshots`).
+- 📁 **Custom Folder per User (`.env`):** To watch a specific custom folder on your machine without affecting other teammates or Git commits, edit your local `.env`:
+  ```env
+  SNAPTITLE_SCREENSHOTS_DIR="C:/Users/YourName/Pictures/Screenshots"
+  ```
+- ⚡ **CLI Runtime Flag:** You can also pass a custom directory directly when launching:
+  ```powershell
+  python main.py --watch-dir "D:/MyCustomScreenshots"
+  ```
 
 ---
 

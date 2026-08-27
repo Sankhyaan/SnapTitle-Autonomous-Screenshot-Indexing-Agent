@@ -335,19 +335,79 @@ class SnapTitleService:
 
 def main():
     """CLI entry point for running SnapTitle daemon."""
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="SnapTitle: Autonomous Screenshot Indexing & Semantic Renaming Daemon."
+    )
+    parser.add_argument(
+        "--watch-dir", "-d", "--dir",
+        type=str,
+        default=None,
+        help="Path to folder to watch for screenshots (defaults to OS auto-detection or config file)"
+    )
+    parser.add_argument(
+        "--config", "-c",
+        type=str,
+        default=None,
+        help="Path to custom YAML configuration file"
+    )
+    parser.add_argument(
+        "--no-popup",
+        action="store_true",
+        help="Disable interactive floating desktop popup notifications"
+    )
+    parser.add_argument(
+        "--provider",
+        type=str,
+        choices=["gemini", "ollama"],
+        default=None,
+        help="AI provider override ('gemini' or 'ollama')"
+    )
+    parser.add_argument(
+        "--model",
+        type=str,
+        default=None,
+        help="Gemini or LLM model override"
+    )
+    parser.add_argument(
+        "--db-path",
+        type=str,
+        default=None,
+        help="Custom SQLite database file path"
+    )
+
+    args = parser.parse_args()
+
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
     )
     
-    config = load_config()
+    config = load_config(args.config)
+
+    # Apply CLI argument overrides
+    if args.watch_dir:
+        config.screenshots_dir = Path(args.watch_dir).resolve()
+    if args.no_popup:
+        config.show_popup = False
+    if args.provider:
+        config.ai_provider = args.provider
+    if args.model:
+        if config.ai_provider == "gemini":
+            config.gemini_model = args.model
+        else:
+            config.llm_model = args.model
+    if args.db_path:
+        config.database_path = Path(args.db_path).resolve()
+
     print("=" * 60)
     print("  SnapTitle - Desktop Screenshot Automation Daemon")
     print("=" * 60)
     print(f"Screenshots folder : {config.screenshots_dir}")
     print(f"Popup UI           : {'Enabled (' + str(config.popup_duration_seconds) + 's)' if config.show_popup else 'Disabled'}")
-    print(f"Text LLM Model     : {config.llm_model}")
-    print(f"Vision VLM Model   : {config.vlm_model}")
+    print(f"AI Provider        : {config.ai_provider}")
+    print(f"Model              : {config.gemini_model if config.ai_provider == 'gemini' else config.llm_model}")
     print(f"Database Path      : {config.database_path}")
     print(f"Tesseract Binary   : {config.tesseract_cmd or 'Auto-detected'}")
     print("Press Ctrl+C to stop...\n")
