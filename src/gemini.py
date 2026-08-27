@@ -39,32 +39,19 @@ Output MUST be a valid JSON object matching this schema:
 
 
 def generate_title_and_caption_with_gemini(
-    image_path: Path,
+    image_path: Optional[Path] = None,
     api_key: Optional[str] = None,
-    model: str = "gemini-2.5-flash",
-    timeout: float = 12.0,
-    max_retries: int = 1
+    model: Optional[str] = "gemini-3.6-flash",
+    timeout: float = 15.0,
+    max_retries: int = 2,
+    raw_base64: Optional[str] = None
 ) -> Optional[Tuple[str, str]]:
-    """Analyze screenshot using Gemini Multimodal Vision and return (title, extracted_content).
+    """Analyze screenshot with Google Gemini Vision API and return clean title and caption.
 
     Supports multiple API keys (comma/semicolon separated in api_key or env vars) with
     automatic failover and rate-limit rotation.
-
-    Args:
-        image_path: Path to screenshot image.
-        api_key: Optional Google Gemini API key or comma-separated list of keys.
-        model: Gemini model identifier (e.g. 'gemini-2.5-flash', 'gemini-1.5-flash').
-        timeout: Network timeout in seconds.
-        max_retries: Maximum retry attempts on transient network errors.
-
-    Returns:
-        Optional[Tuple[str, str]]: (Cleaned title, Searchable content summary) or None on error.
     """
     import os
-
-    if not image_path.exists():
-        logger.warning(f"Image path does not exist: {image_path}")
-        return None
 
     # Collect all available API keys into a pool
     key_pool = []
@@ -84,8 +71,7 @@ def generate_title_and_caption_with_gemini(
         logger.warning("No Gemini API key provided in arguments or environment.")
         return None
 
-    # Detect MIME type
-    ext = image_path.suffix.lower()
+    # Detect MIME type and extract base64 data
     mime_type_map = {
         ".png": "image/png",
         ".jpg": "image/jpeg",
@@ -94,14 +80,26 @@ def generate_title_and_caption_with_gemini(
         ".bmp": "image/bmp",
         ".gif": "image/gif"
     }
-    mime_type = mime_type_map.get(ext, "image/png")
 
-    try:
-        with open(image_path, "rb") as f:
-            image_bytes = f.read()
-        image_b64 = base64.b64encode(image_bytes).decode("utf-8")
-    except Exception as read_err:
-        logger.error(f"Failed to read image for Gemini inference: {read_err}")
+    image_b64 = None
+    mime_type = "image/png"
+
+    if raw_base64:
+        if "," in raw_base64:
+            raw_base64 = raw_base64.split(",")[1]
+        image_b64 = raw_base64
+        mime_type = "image/png"
+    elif image_path and image_path.exists():
+        ext = image_path.suffix.lower()
+        mime_type = mime_type_map.get(ext, "image/png")
+        try:
+            with open(image_path, "rb") as f:
+                image_b64 = base64.b64encode(f.read()).decode("utf-8")
+        except Exception as read_err:
+            logger.error(f"Failed to read image for Gemini inference: {read_err}")
+            return None
+    else:
+        logger.warning(f"No valid image provided (path={image_path}, has_b64={bool(raw_base64)})")
         return None
 
     payload: Dict[str, Any] = {
@@ -143,11 +141,12 @@ def generate_title_and_caption_with_gemini(
 
     for current_key in key_pool:
         key_masked = f"{current_key[:6]}...{current_key[-4:]}" if len(current_key) > 10 else "***"
+        image_label = image_path.name if image_path else "base64_frame"
         for current_model in candidate_models:
             url = GEMINI_API_ENDPOINT.format(model=current_model, key=current_key)
             for attempt in range(1, max_retries + 1):
                 try:
-                    logger.info(f"Querying Gemini Vision ({current_model}) [Key {key_masked}] for '{image_path.name}'...")
+                    logger.info(f"Querying Gemini Vision ({current_model}) [Key {key_masked}] for '{image_label}'...")
                     req = urllib.request.Request(
                         url,
                         data=payload_bytes,
@@ -189,7 +188,7 @@ def generate_title_and_caption_with_gemini(
                     title = re.sub(r'[^\w\s\-_.]', '', title).strip(' -_.')
                     
                     if title:
-                        logger.info(f"Gemini ({current_model}) successfully titled '{image_path.name}' -> '{title}'")
+                        logger.info(f"Gemini ({current_model}) successfully titled '{image_label}' -> '{title}'")
                         return title, content_summary
 
                 except urllib.error.HTTPError as http_err:

@@ -133,9 +133,10 @@ class SnapTitleDemoHandler(SimpleHTTPRequestHandler):
             start_t = time.time()
             res = generate_title_and_caption_with_gemini(
                 image_path=target_path,
+                raw_base64=image_b64,
                 api_key=cfg.gemini_api_key,
                 model=cfg.gemini_model,
-                timeout=12.0,
+                timeout=15.0,
                 max_retries=2
             )
             elapsed_ms = int((time.time() - start_t) * 1000)
