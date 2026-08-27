@@ -2,9 +2,12 @@
 ### Autonomous Multimodal Screenshot Indexing & Semantic Renaming Agent
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-snaptitle.up.railway.app-00C7B7?style=flat&logo=railway&logoColor=white)](https://snaptitle.up.railway.app/)
 [![AI Provider](https://img.shields.io/badge/AI%20Provider-Gemini%20%7C%20Ollama-orange.svg)](https://ai.google.dev/)
 [![Search](https://img.shields.io/badge/Search-SQLite%20FTS5-green.svg)](https://www.sqlite.org/fts5.html)
 [![License](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
+
+> 🌐 **Live Interactive Web Visualizer:** [https://snaptitle.up.railway.app](https://snaptitle.up.railway.app/)
 
 **SnapTitle** is an autonomous desktop background agent that intercepts screenshot creation events in real time, extracts visual and OCR context using **Google Gemini Multimodal Vision** or **Local Ollama Models**, intelligently generates clean semantic filenames, and indexes all visual text into a local **SQLite FTS5 Full-Text Search** database.
 
@@ -107,7 +110,8 @@ python main.py
 ---
 
 ### 2. Run the Interactive Web Visualizer
-Launch the interactive web-based testing studio:
+- 🌐 **Online Cloud Demo:** Visit **[https://snaptitle.up.railway.app](https://snaptitle.up.railway.app)**
+- 💻 **Local Server:** Launch the interactive testing studio on your machine:
 ```powershell
 python demo_server.py --port 8080
 ```
