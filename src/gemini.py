@@ -40,29 +40,48 @@ Output MUST be a valid JSON object matching this schema:
 
 def generate_title_and_caption_with_gemini(
     image_path: Path,
-    api_key: str,
-    model: str = "gemini-3.7-flash",
-    timeout: float = 20.0,
-    max_retries: int = 2
+    api_key: Optional[str] = None,
+    model: str = "gemini-2.5-flash",
+    timeout: float = 12.0,
+    max_retries: int = 1
 ) -> Optional[Tuple[str, str]]:
     """Analyze screenshot using Gemini Multimodal Vision and return (title, extracted_content).
 
+    Supports multiple API keys (comma/semicolon separated in api_key or env vars) with
+    automatic failover and rate-limit rotation.
+
     Args:
         image_path: Path to screenshot image.
-        api_key: Google Gemini API key.
-        model: Gemini model identifier (e.g. 'gemini-2.5-flash', 'gemini-flash-lite-latest').
+        api_key: Optional Google Gemini API key or comma-separated list of keys.
+        model: Gemini model identifier (e.g. 'gemini-2.5-flash', 'gemini-1.5-flash').
         timeout: Network timeout in seconds.
         max_retries: Maximum retry attempts on transient network errors.
 
     Returns:
         Optional[Tuple[str, str]]: (Cleaned title, Searchable content summary) or None on error.
     """
+    import os
+
     if not image_path.exists():
         logger.warning(f"Image path does not exist: {image_path}")
         return None
 
-    if not api_key:
-        logger.warning("No Gemini API key provided.")
+    # Collect all available API keys into a pool
+    key_pool = []
+    if api_key:
+        for k in re.split(r'[,;\s]+', api_key.strip()):
+            if k and k not in key_pool:
+                key_pool.append(k)
+
+    for env_k in ["GEMINI_API_KEYS", "GEMINI_API_KEY", "SNAPTITLE_GEMINI_API_KEY"]:
+        val = os.environ.get(env_k, "")
+        if val:
+            for k in re.split(r'[,;\s]+', val.strip()):
+                if k and k not in key_pool:
+                    key_pool.append(k)
+
+    if not key_pool:
+        logger.warning("No Gemini API key provided in arguments or environment.")
         return None
 
     # Detect MIME type
@@ -109,82 +128,82 @@ def generate_title_and_caption_with_gemini(
 
     payload_bytes = json.dumps(payload).encode("utf-8")
 
-    # Cascading model fallback list: tries fastest/most responsive first, falls back on 429/404/timeout.
+    # Cascading model fallback list: tries fastest/highest-quota models first
     candidate_models = [model]
     for m in [
-        "gemini-3.6-flash",       # ultra fast sub-2s multimodal response
-        "gemini-3.5-flash-lite",  # lightest 3.x model
-        "gemini-3.5-flash",       # May 2026 flagship
-        "gemini-3.7-flash",       # 3.7 flash
-        "gemini-1.5-flash",       # 15 RPM stable fallback
-        "gemini-1.5-flash-8b",    # 15 RPM lightweight fallback
-        "gemini-flash-lite-latest",
         "gemini-2.5-flash",
+        "gemini-2.0-flash",
+        "gemini-1.5-flash",
+        "gemini-1.5-flash-8b",
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
+        "gemini-3.5-flash",
         "gemini-flash-latest",
     ]:
         if m not in candidate_models:
             candidate_models.append(m)
 
-    for current_model in candidate_models:
-        url = GEMINI_API_ENDPOINT.format(model=current_model, key=api_key)
-        for attempt in range(1, max_retries + 1):
-            try:
-                logger.info(f"Querying Gemini Multimodal Vision ({current_model}) for '{image_path.name}' [attempt {attempt}/{max_retries}]...")
-                req = urllib.request.Request(
-                    url,
-                    data=payload_bytes,
-                    headers={"Content-Type": "application/json"},
-                    method="POST"
-                )
-
-                with urllib.request.urlopen(req, timeout=timeout) as resp:
-                    resp_data = json.loads(resp.read().decode("utf-8"))
-
-                candidates = resp_data.get("candidates", [])
-                if not candidates:
-                    logger.warning(f"Gemini ({current_model}) returned no candidates.")
-                    break
-
-                raw_text = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "").strip()
-                if not raw_text:
-                    logger.warning(f"Gemini ({current_model}) candidate text was empty.")
-                    break
-
-                # Parse JSON output
-                raw_title = ""
-                content_summary = ""
+    for current_key in key_pool:
+        key_masked = f"{current_key[:6]}...{current_key[-4:]}" if len(current_key) > 10 else "***"
+        for current_model in candidate_models:
+            url = GEMINI_API_ENDPOINT.format(model=current_model, key=current_key)
+            for attempt in range(1, max_retries + 1):
                 try:
-                    parsed = json.loads(raw_text)
-                    raw_title = parsed.get("title", "")
-                    content_summary = parsed.get("content", "")
-                except json.JSONDecodeError:
-                    # Fallback if raw text returned instead of JSON
-                    raw_title = raw_text
-                    content_summary = raw_text
+                    logger.info(f"Querying Gemini Vision ({current_model}) [Key {key_masked}] for '{image_path.name}'...")
+                    req = urllib.request.Request(
+                        url,
+                        data=payload_bytes,
+                        headers={"Content-Type": "application/json"},
+                        method="POST"
+                    )
 
-                # Clean and enforce title with spaces
-                cleaned = clean_llm_response(raw_title, max_words=6)
-                s1 = re.sub(r'[_]+', ' ', cleaned)
-                s2 = re.sub(r'(.)([A-Z][a-z]+)', r'\1 \2', s1)
-                s3 = re.sub(r'([a-z0-9])([A-Z])', r'\1 \2', s2)
-                title = re.sub(r'[\s]+', ' ', s3).strip()
-                title = re.sub(r'[^\w\s\-_.]', '', title).strip(' -_.')
-                
-                if title:
-                    logger.info(f"Gemini ({current_model}) successfully titled '{image_path.name}' -> '{title}'")
-                    return title, content_summary
+                    with urllib.request.urlopen(req, timeout=timeout) as resp:
+                        resp_data = json.loads(resp.read().decode("utf-8"))
 
-            except urllib.error.HTTPError as http_err:
-                error_body = ""
-                try:
-                    error_body = http_err.read().decode("utf-8")
-                except Exception:
-                    pass
-                logger.warning(f"Gemini ({current_model}) HTTP {http_err.code}: {http_err.reason} - {error_body[:200]}")
-                # If rate limited (429) or model not found (404), break and try next fallback model
-                if http_err.code in (429, 404):
-                    break
-            except Exception as err:
-                logger.warning(f"Gemini ({current_model}) failed on attempt {attempt}: {err}")
+                    candidates = resp_data.get("candidates", [])
+                    if not candidates:
+                        break
+
+                    raw_text = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "").strip()
+                    if not raw_text:
+                        break
+
+                    # Parse JSON output
+                    raw_title = ""
+                    content_summary = ""
+                    try:
+                        parsed = json.loads(raw_text)
+                        raw_title = parsed.get("title", "")
+                        content_summary = parsed.get("content", "")
+                    except json.JSONDecodeError:
+                        raw_title = raw_text
+                        content_summary = raw_text
+
+                    # Clean and enforce title with spaces
+                    cleaned = clean_llm_response(raw_title, max_words=6)
+                    s1 = re.sub(r'[_]+', ' ', cleaned)
+                    s2 = re.sub(r'(.)([A-Z][a-z]+)', r'\1 \2', s1)
+                    s3 = re.sub(r'([a-z0-9])([A-Z])', r'\1 \2', s2)
+                    title = re.sub(r'[\s]+', ' ', s3).strip()
+                    title = re.sub(r'[^\w\s\-_.]', '', title).strip(' -_.')
+                    
+                    if title:
+                        logger.info(f"Gemini ({current_model}) successfully titled '{image_path.name}' -> '{title}'")
+                        return title, content_summary
+
+                except urllib.error.HTTPError as http_err:
+                    error_body = ""
+                    try:
+                        error_body = http_err.read().decode("utf-8")
+                    except Exception:
+                        pass
+                    logger.warning(f"Gemini ({current_model}) [Key {key_masked}] HTTP {http_err.code}: {http_err.reason}")
+                    # If 429 quota reached on this key, skip to next key or next model immediately
+                    if http_err.code == 429:
+                        break
+                    if http_err.code == 404:
+                        break
+                except Exception as err:
+                    logger.warning(f"Gemini ({current_model}) [Key {key_masked}] attempt {attempt} error: {err}")
 
     return None
