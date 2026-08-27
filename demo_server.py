@@ -118,15 +118,7 @@ class SnapTitleDemoHandler(SimpleHTTPRequestHandler):
                 if p.exists():
                     target_path = p
 
-            if not target_path and image_b64:
-                if "," in image_b64:
-                    image_b64 = image_b64.split(",")[1]
-                temp_path = Path(tempfile.gettempdir()) / f"snaptitle_web_{int(time.time()*1000)}.png"
-                with open(temp_path, "wb") as f:
-                    f.write(base64.b64decode(image_b64))
-                target_path = temp_path
-
-            if not target_path or not target_path.exists():
+            if not target_path and not image_b64:
                 self._send_json_response({"success": False, "error": "Image file could not be resolved"}, 400)
                 return
 
@@ -141,9 +133,9 @@ class SnapTitleDemoHandler(SimpleHTTPRequestHandler):
             )
             elapsed_ms = int((time.time() - start_t) * 1000)
 
-            # Bulletproof Fallback: if cloud API hits rate limit or times out, run local semantic heuristic extraction
+            # Fallback if API key missing or unreachable
             if not res:
-                res = self._fallback_semantic_analysis(target_path, image_path_str)
+                res = self._fallback_semantic_analysis(target_path or Path(image_path_str or "custom.png"), image_path_str)
 
             if temp_path and temp_path.exists():
                 try:
