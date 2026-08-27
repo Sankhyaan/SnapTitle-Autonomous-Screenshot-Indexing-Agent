@@ -516,7 +516,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Call live backend Python Gemini analysis API
     const reqPayload = preset.customDataUrl 
-      ? { image_base64: preset.customDataUrl, image_path: preset.rawFile } 
+      ? { image_base64: preset.customDataUrl } 
       : { image_path: preset.imageSrc };
 
     try {
