@@ -135,8 +135,8 @@ class SnapTitleDemoHandler(SimpleHTTPRequestHandler):
                 image_path=target_path,
                 api_key=cfg.gemini_api_key,
                 model=cfg.gemini_model,
-                timeout=8.0,
-                max_retries=1
+                timeout=12.0,
+                max_retries=2
             )
             elapsed_ms = int((time.time() - start_t) * 1000)
 
@@ -255,9 +255,19 @@ class SnapTitleDemoHandler(SimpleHTTPRequestHandler):
             except Exception as e:
                 logger.warning(f"Error querying SQLite database: {e}")
 
+        from config.config import load_config
+        cfg = load_config()
+        active_key = cfg.gemini_api_key or os.environ.get("GEMINI_API_KEY") or os.environ.get("SNAPTITLE_GEMINI_API_KEY")
+
         payload = {
             "status": "online",
             "service": "SnapTitle Autonomous Indexing Engine",
+            "ai_engine": {
+                "provider": "gemini",
+                "model": cfg.gemini_model,
+                "has_api_key": bool(active_key),
+                "key_preview": f"{active_key[:6]}...{active_key[-4:]}" if active_key and len(active_key) > 10 else None
+            },
             "database": {
                 "exists": db_exists,
                 "path": str(db_path),
@@ -265,9 +275,8 @@ class SnapTitleDemoHandler(SimpleHTTPRequestHandler):
             },
             "features": {
                 "watchdog_observer": True,
-                "tesseract_ocr": True,
-                "moondream_vlm": True,
-                "llama_titling": True,
+                "multimodal_vision": True,
+                "gemini_3_6_flash": True,
                 "sqlite_fts5": True
             }
         }

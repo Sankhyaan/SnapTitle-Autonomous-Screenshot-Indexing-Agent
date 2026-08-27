@@ -129,8 +129,7 @@ def generate_title_and_caption_with_gemini(
     payload_bytes = json.dumps(payload).encode("utf-8")
 
     # Cascading model fallback list: tries fastest/most available models first
-    candidate_models = [model] if model else []
-    for m in [
+    candidate_models = [
         "gemini-3.6-flash",
         "gemini-flash-latest",
         "gemini-3.5-flash",
@@ -138,9 +137,9 @@ def generate_title_and_caption_with_gemini(
         "gemini-2.5-flash-lite",
         "gemini-3.7-flash",
         "gemini-2.5-flash",
-    ]:
-        if m not in candidate_models:
-            candidate_models.append(m)
+    ]
+    if model and model not in candidate_models:
+        candidate_models.insert(0, model)
 
     for current_key in key_pool:
         key_masked = f"{current_key[:6]}...{current_key[-4:]}" if len(current_key) > 10 else "***"

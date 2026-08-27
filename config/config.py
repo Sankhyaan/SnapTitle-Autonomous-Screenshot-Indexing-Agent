@@ -176,7 +176,7 @@ class Config:
     popup_duration_seconds: int = 5
     ai_provider: str = "gemini"  # 'gemini' or 'ollama'
     gemini_api_key: Optional[str] = None
-    gemini_model: str = "gemini-2.5-flash"
+    gemini_model: str = "gemini-3.6-flash"
     llm_model: str = "llama3.2:3b"
     vlm_model: str = "llava:7b"
     ollama_host: str = "http://127.0.0.1:11434"
@@ -296,7 +296,7 @@ def load_config(config_path: Optional[Union[str, Path]] = None) -> Config:
     # AI Provider & Models
     ai_provider = os.environ.get("SNAPTITLE_AI_PROVIDER", str(data.get("ai_provider", "gemini")))
     gemini_api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("SNAPTITLE_GEMINI_API_KEY") or data.get("gemini_api_key")
-    gemini_model = os.environ.get("SNAPTITLE_GEMINI_MODEL", str(data.get("gemini_model", "gemini-2.5-flash")))
+    gemini_model = os.environ.get("SNAPTITLE_GEMINI_MODEL", str(data.get("gemini_model", "gemini-3.6-flash")))
 
     llm_model = os.environ.get("SNAPTITLE_LLM_MODEL", str(data.get("llm_model", "llama3.2:3b")))
     vlm_model = os.environ.get("SNAPTITLE_VLM_MODEL", str(data.get("vlm_model", "llava:7b")))
