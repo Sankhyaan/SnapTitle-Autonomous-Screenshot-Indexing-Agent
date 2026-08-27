@@ -1,3 +1,4 @@
+from __future__ import annotations
 """SnapTitle modern floating Desktop HUD Notification with thumbnail preview, live editing, and animated countdown."""
 
 import os
@@ -7,7 +8,8 @@ import queue
 import logging
 import threading
 from pathlib import Path
-from typing import Optional, Callable
+from typing import Optional, Callable, Any
+
 try:
     import tkinter as tk
     from tkinter import ttk
@@ -394,6 +396,9 @@ class PopupManager:
 
     def _start_thread(self):
         """Start the background Tkinter GUI event loop thread."""
+        if not HAS_TKINTER:
+            logger.info("Tkinter not available in this environment. Running in headless mode.")
+            return
         self._is_running = True
         self._thread = threading.Thread(target=self._run_tk_loop, daemon=True, name="SnapTitlePopupThread")
         self._thread.start()
