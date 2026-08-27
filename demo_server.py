@@ -48,6 +48,8 @@ class SnapTitleDemoHandler(SimpleHTTPRequestHandler):
             self._handle_static_file("favicon.ico", "image/x-icon")
         elif path == "/favicon.svg":
             self._handle_static_file("favicon.svg", "image/svg+xml")
+        elif path == "/favicon.png":
+            self._handle_static_file("favicon.png", "image/png")
         else:
             # Fallback to serving static files from web_demo/
             super().do_GET()
