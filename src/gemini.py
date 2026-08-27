@@ -188,8 +188,6 @@ def generate_title_and_caption_with_gemini(
                     s3 = re.sub(r'([a-z0-9])([A-Z])', r'\1 \2', s2)
                     title = re.sub(r'[\s]+', ' ', s3).strip()
                     title = re.sub(r'[^\w\s\-_.]', '', title).strip(' -_.')
-                    
-LAST_GEMINI_ERROR = ""
 
                     if title:
                         logger.info(f"Gemini ({current_model}) successfully titled '{image_label}' -> '{title}'")
