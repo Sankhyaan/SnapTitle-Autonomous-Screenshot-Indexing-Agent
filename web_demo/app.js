@@ -504,10 +504,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let effectiveDate = (currentPresetKey === 'custom' ? preset.liveCaptureDate : dateStr) || dateStr;
 
-    // Smart semantic default provider
-    const fallbackMeta = getSmartSemanticMetadata(preset.rawFile || 'custom.png');
-    let liveTitle = currentPresetKey === 'custom' ? fallbackMeta.title : preset.aiSlug;
-    let liveContent = currentPresetKey === 'custom' ? fallbackMeta.content : (preset.route === 'A' ? preset.ocrText : `Visual Scene Understanding: "${preset.vlmCaption}"`);
+    let liveTitle = preset.aiSlug;
+    let liveContent = currentPresetKey === 'custom' ? '' : (preset.route === 'A' ? preset.ocrText : `Visual Scene Understanding: "${preset.vlmCaption}"`);
     let liveFilename = `${liveTitle}_${effectiveDate}.png`;
     let liveDate = effectiveDate;
     let apiLatency = 0;
@@ -527,7 +525,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       if (resp.ok) {
         const data = await resp.json();
-        if (data.success && data.title && data.title !== 'Autonomous Visual Interface Capture') {
+        if (data.success && data.title) {
           liveTitle = data.title;
           liveContent = data.content || liveContent;
           liveFilename = data.final_filename || `${data.title}_${dateStr}.png`;
@@ -536,34 +534,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
     } catch (err) {
-      console.warn('Backend inference notice (using resilient pipeline):', err);
-    }
-
-    // If backend did not return a specific multimodal title, extract real text directly from image pixels via Client OCR
-    if (currentPresetKey === 'custom' && (liveTitle === 'Autonomous Visual Interface Capture' || liveTitle === fallbackMeta.title)) {
-      let ocrText = preset.clientOcrText;
-      if (!ocrText && window.currentOcrPromise) {
-        try {
-          ocrText = await Promise.race([window.currentOcrPromise, delay(1500)]);
-        } catch (e) {}
-      }
-      if (ocrText && ocrText.trim().length > 3) {
-        const ocrDerivedTitle = extractTitleFromOcrText(ocrText);
-        if (ocrDerivedTitle) {
-          liveTitle = ocrDerivedTitle;
-          liveContent = `Multimodal Vision OCR: Extracted visible layout content: "${ocrText.replace(/\s+/g, ' ').trim().substring(0, 180)}..."`;
-          liveFilename = `${liveTitle}_${liveDate}.png`;
-        }
-      }
+      console.warn('Backend inference notice:', err);
     }
 
     previewNode3.textContent = '';
 
-    // Ensure liveContent is rich and informative (never show raw rate limits)
     if (!liveContent || liveContent.trim() === '') {
-      liveContent = fallbackMeta.content;
-      liveTitle = fallbackMeta.title;
-      liveFilename = `${liveTitle}_${liveDate}.png`;
+      liveContent = `Visual Scene Understanding: "${liveTitle}"`;
     }
 
     // Live Streaming Typing Effect for Scene Understanding
@@ -663,32 +640,6 @@ document.addEventListener('DOMContentLoaded', () => {
       title: 'Autonomous Visual Interface Capture',
       content: 'Multimodal Vision Analysis: High-resolution visual capture indexed into local SQLite FTS5 full-text search database.'
     };
-  }
-
-  function extractTitleFromOcrText(text) {
-    if (!text || typeof text !== 'string') return null;
-    const lines = text.split('\n')
-      .map(l => l.trim())
-      .filter(l => l.length > 2 && !/^[0-9\W_]+$/.test(l));
-    if (lines.length === 0) return null;
-
-    // Filter out common UI noise words
-    const cleanLines = lines.filter(l => !/^(file|edit|view|help|http|www|close|exit|save)$/i.test(l));
-    const targetLines = cleanLines.length > 0 ? cleanLines : lines;
-
-    // Pick top prominent lines
-    let combined = targetLines.slice(0, 3).join(' ')
-      .replace(/[^\w\s\-_&]/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-
-    let words = combined.split(/\s+/).slice(0, 6);
-    if (words.length >= 2) {
-      return words.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-    } else if (words.length === 1 && words[0].length >= 3) {
-      return `${words[0].toUpperCase()} System Architecture`;
-    }
-    return null;
   }
 
   function executeStep(step) {
@@ -827,32 +778,8 @@ document.addEventListener('DOMContentLoaded', () => {
         liveFinalFilename: `${cleanSlug}_${dateStr}.png`,
         collisionCount: 0,
         customDataUrl: base64Data,
-        clientOcrText: '',
         latencies: { node1: '30 ms', node2: '15 ms', node3: '-- ms', node4: '-- ms' }
       };
-
-      // Run background real-pixel OCR immediately
-      if (typeof Tesseract !== 'undefined') {
-        window.currentOcrPromise = Tesseract.recognize(base64Data, 'eng', {
-          logger: () => {}
-        }).then(res => {
-          const txt = res?.data?.text || '';
-          if (PRESETS.custom) {
-            PRESETS.custom.clientOcrText = txt;
-            const derived = extractTitleFromOcrText(txt);
-            if (derived) {
-              PRESETS.custom.aiSlug = derived;
-              PRESETS.custom.finalFilename = `${derived}_${dateStr}.png`;
-              PRESETS.custom.liveFinalFilename = `${derived}_${dateStr}.png`;
-              PRESETS.custom.ocrText = `Multimodal Vision OCR: Extracted visible layout content: "${txt.replace(/\s+/g, ' ').trim().substring(0, 180)}..."`;
-            }
-          }
-          return txt;
-        }).catch(err => {
-          console.warn('Client OCR background worker notice:', err);
-          return '';
-        });
-      }
 
       currentPresetKey = 'custom';
       pipelineStateLabel.textContent = `Custom image loaded: "${file.name}". Click "Simulate Pipeline" to run live Gemini titling.`;
