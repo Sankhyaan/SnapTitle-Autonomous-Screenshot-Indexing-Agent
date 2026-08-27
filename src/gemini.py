@@ -128,17 +128,16 @@ def generate_title_and_caption_with_gemini(
 
     payload_bytes = json.dumps(payload).encode("utf-8")
 
-    # Cascading model fallback list: tries fastest/highest-quota models first
-    candidate_models = [model]
+    # Cascading model fallback list: tries fastest/most available models first
+    candidate_models = [model] if model else []
     for m in [
-        "gemini-2.5-flash",
-        "gemini-2.0-flash",
-        "gemini-1.5-flash",
-        "gemini-1.5-flash-8b",
-        "gemini-3.7-flash",
         "gemini-3.6-flash",
-        "gemini-3.5-flash",
         "gemini-flash-latest",
+        "gemini-3.5-flash",
+        "gemini-flash-lite-latest",
+        "gemini-2.5-flash-lite",
+        "gemini-3.7-flash",
+        "gemini-2.5-flash",
     ]:
         if m not in candidate_models:
             candidate_models.append(m)
@@ -153,7 +152,10 @@ def generate_title_and_caption_with_gemini(
                     req = urllib.request.Request(
                         url,
                         data=payload_bytes,
-                        headers={"Content-Type": "application/json"},
+                        headers={
+                            "Content-Type": "application/json",
+                            "x-goog-api-key": current_key
+                        },
                         method="POST"
                     )
 
