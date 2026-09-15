@@ -16,6 +16,8 @@ from urllib.parse import urlparse, parse_qs
 
 # Project Root
 PROJECT_ROOT = Path(__file__).resolve().parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 WEB_DEMO_DIR = PROJECT_ROOT / "web_demo"
 
 logging.basicConfig(
@@ -45,23 +47,31 @@ class SnapTitleDemoHandler(SimpleHTTPRequestHandler):
             self._handle_api_search(query)
         elif path == "/api/records":
             self._handle_api_records()
-        elif path == "/favicon.ico":
+        elif path in ("/favicon.ico", "/assets/icons/favicon.ico"):
             self._handle_static_file("favicon.ico", "image/x-icon")
-        elif path == "/favicon.svg":
+        elif path in ("/favicon.svg", "/assets/icons/favicon.svg"):
             self._handle_static_file("favicon.svg", "image/svg+xml")
-        elif path == "/favicon.png":
+        elif path in ("/favicon.png", "/assets/icons/favicon.png"):
             self._handle_static_file("favicon.png", "image/png")
         else:
             # Fallback to serving static files from web_demo/
             super().do_GET()
 
     def _handle_static_file(self, filename: str, content_type: str):
-        """Explicitly serve static assets like favicons with correct headers."""
-        target = WEB_DEMO_DIR / filename
-        if not target.exists():
-            target = PROJECT_ROOT / filename
+        """Explicitly serve static assets like favicons with correct headers and multi-path resolution."""
+        candidates = [
+            WEB_DEMO_DIR / filename,
+            WEB_DEMO_DIR / "assets" / "icons" / filename,
+            PROJECT_ROOT / "assets" / "icons" / filename,
+            PROJECT_ROOT / filename,
+        ]
+        target = None
+        for cand in candidates:
+            if cand.exists():
+                target = cand
+                break
 
-        if target.exists():
+        if target:
             with open(target, "rb") as f:
                 data = f.read()
             self.send_response(200)
@@ -72,7 +82,7 @@ class SnapTitleDemoHandler(SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(data)
         else:
-            self.send_error(404, "File not found")
+            self.send_error(404, f"File not found: {filename}")
 
     def do_OPTIONS(self):
         """Handle CORS preflight requests."""
@@ -114,8 +124,18 @@ class SnapTitleDemoHandler(SimpleHTTPRequestHandler):
             if image_path_str:
                 p = Path(image_path_str)
                 if not p.is_absolute():
-                    p = WEB_DEMO_DIR / p
-                if p.exists():
+                    candidates = [
+                        WEB_DEMO_DIR / p,
+                        WEB_DEMO_DIR / "assets" / p,
+                        WEB_DEMO_DIR / "assets" / "images" / p.name,
+                        WEB_DEMO_DIR / "images" / p.name,
+                        PROJECT_ROOT / p,
+                    ]
+                    for cand in candidates:
+                        if cand.exists():
+                            target_path = cand
+                            break
+                elif p.exists():
                     target_path = p
 
             if not target_path and not image_b64:
