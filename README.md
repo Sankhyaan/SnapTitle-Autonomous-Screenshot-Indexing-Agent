@@ -31,34 +31,64 @@
 
 ```text
 SnapTitle/
-├── config/
-│   ├── config.py              # Configuration loader & OS screenshot folder auto-detection
-│   └── default_config.yaml    # Application settings (AI provider, models, timeouts, paths)
-├── data/                      # Local SQLite database directory
-│   └── snaptitle.db           # SQLite database with FTS5 virtual tables
-├── src/
-│   ├── core.py                # Main orchestrator service & background daemon
-│   ├── gemini.py              # Google Gemini 2.5 Flash Multimodal Vision engine
-│   ├── ocr.py                 # Tesseract OCR text extraction
-│   ├── llm.py                 # Local LLM titling & sanitization
-│   ├── vlm.py                 # Local Vision-Language Model captioning
-│   ├── watcher.py             # Watchdog filesystem observer
-│   ├── naming.py              # Snake_case sanitization & duplicate disambiguation
-│   ├── renamer.py             # Atomic file moving & lock handling
-│   ├── popup.py               # Desktop Tkinter HUD notification
-│   └── database.py            # SQLite storage & FTS5 full-text search index
-├── web_demo/                  # Interactive visual simulation workspace
-│   ├── index.html             # Web visualizer markup
-│   ├── styles.css             # Glassmorphism dark-mode UI
-│   ├── app.js                 # Real-time WebSocket/REST orchestrator
-│   └── images/                # Scenario presets
-├── tests/                     # 7 comprehensive test suites
-├── demo_server.py             # Local HTTP REST server for web visualizer
-├── main.py                    # Autonomous background daemon entrypoint
+├── main.py                    # Primary Watchdog Daemon entrypoint
 ├── search.py                  # CLI search and database management tool
 ├── undo.py                    # CLI undo utility
+├── demo_server.py             # Local HTTP REST server for web visualizer
 ├── run_tests.py               # Test runner script
-└── requirements.txt           # Python dependencies
+├── requirements.txt           # Python dependencies
+│
+├── assets/                    # Project Branding & Graphic Assets
+│   └── icons/                 # Application favicons (ICO, PNG, SVG)
+│
+├── cli/                       # Command-Line Interfaces & Tooling
+│   ├── search.py              # Full-text search and export engine
+│   ├── undo.py                # Undo last rename utility
+│   └── web_server.py          # Interactive web visualizer server
+│
+├── config/                    # Configuration & Environment Management
+│   ├── config.py              # Configuration loader & validator
+│   └── default_config.yaml    # Application settings (AI provider, models, paths)
+│
+├── data/                      # Local persistent database directory
+│   └── snaptitle.db           # SQLite database with FTS5 virtual tables
+│
+├── deploy/                    # Cloud Deployment Descriptors
+│   ├── railway.toml           # Railway deployment configuration
+│   ├── render.yaml            # Render deployment configuration
+│   └── requirements-web.txt   # Minimal web demo cloud dependencies
+│
+├── src/                       # Core SnapTitle Engine Architecture
+│   ├── core.py                # Main orchestrator service & background daemon
+│   ├── ai/                    # Vision & Language Intelligence Models
+│   │   ├── gemini.py          # Google Gemini Multimodal Vision engine
+│   │   ├── ocr.py             # Tesseract OCR text extraction
+│   │   ├── llm.py             # Local LLM titling & sanitization
+│   │   └── vlm.py             # Local Vision-Language Model captioning
+│   ├── pipeline/              # Ingestion, Titling & Atomic Renaming
+│   │   ├── naming.py          # Semantic slug generation & collision resolution
+│   │   ├── renamer.py         # Atomic file moving & lock handling
+│   │   └── watcher.py         # Watchdog filesystem observer
+│   ├── storage/               # Persistence & Search Indexing
+│   │   └── database.py        # SQLite storage & FTS5 full-text search index
+│   └── ui/                    # Desktop HUD & Notification Overlays
+│       └── popup.py           # Desktop Tkinter HUD notification
+│
+├── tests/                     # Comprehensive test suites & fixtures
+│   └── fixtures/              # Test image assets & sample fixtures
+│
+├── tools/                     # Developer Tools & Generators
+│   ├── generate_icons.py      # Icon generator script
+│   └── test_uri.py            # URI validation helper
+│
+└── web_demo/                  # Vue.js 3 Web Visualizer & Pipeline Simulator
+    ├── index.html             # Vue 3 Single Page Application
+    └── assets/                # Web demo frontend assets
+        ├── css/styles.css     # Complete design system & Vue animations
+        ├── js/app.js          # Vue 3 reactive Composition API SPA logic
+        ├── vendor/            # Standalone Vue 3 production runtime bundle
+        ├── icons/             # Web favicons
+        └── images/            # Scenario presets
 ```
 
 ---

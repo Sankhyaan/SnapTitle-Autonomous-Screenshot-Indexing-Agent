@@ -78,7 +78,8 @@ def test_tesseract(config):
         print("          or download from: https://github.com/UB-Mannheim/tesseract/wiki")
         return False
 
-    sample_img_path = PROJECT_ROOT / "tests" / "sample_ocr.png"
+    fixtures_dir = PROJECT_ROOT / "tests" / "fixtures"
+    sample_img_path = fixtures_dir / "sample_ocr.png" if fixtures_dir.exists() else PROJECT_ROOT / "tests" / "sample_ocr.png"
     create_sample_image(sample_img_path)
     print(f"[INFO] Generated sample test image at: {sample_img_path}")
 
@@ -164,9 +165,9 @@ class TestEnvironmentSetup(unittest.TestCase):
         self.assertGreater(config.popup_duration_seconds, 0)
         self.assertTrue(isinstance(config.to_dict(), dict))
 
-    def test_sample_image_generation(self):
-        """Verify test sample image generation creates a valid image file."""
-        sample_path = PROJECT_ROOT / "tests" / "sample_ocr.png"
+        fixtures_dir = PROJECT_ROOT / "tests" / "fixtures"
+        fixtures_dir.mkdir(parents=True, exist_ok=True)
+        sample_path = fixtures_dir / "sample_ocr.png"
         created = create_sample_image(sample_path)
         self.assertTrue(created.exists())
         self.assertGreater(created.stat().st_size, 0)
