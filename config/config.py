@@ -203,6 +203,11 @@ class Config:
                 except Exception:
                     pass
 
+    def summary(self) -> str:
+        """Return a formatted one-line string summarizing active configuration."""
+        provider_info = f"AI Provider: {self.ai_provider} ({self.gemini_model if self.ai_provider == 'gemini' else self.llm_model})"
+        return f"SnapTitleConfig[WatchDir: {self.screenshots_dir}, {provider_info}, DB: {self.database_path}]"
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert configuration to dictionary for serialization and debugging.
 
@@ -279,12 +284,15 @@ def load_config(config_path: Optional[Union[str, Path]] = None) -> Config:
     # Screenshot directory: Env var > YAML > OS Auto-detection
     env_screenshots = os.environ.get("SNAPTITLE_SCREENSHOTS_DIR")
     screenshots_dir_raw = env_screenshots or data.get("screenshots_dir")
-    screenshots_dir = Path(screenshots_dir_raw) if screenshots_dir_raw else get_default_screenshots_dir()
+    if screenshots_dir_raw:
+        screenshots_dir = Path(os.path.expanduser(os.path.expandvars(str(screenshots_dir_raw))))
+    else:
+        screenshots_dir = get_default_screenshots_dir()
 
     # Database path: Env var > YAML > Default
     env_db = os.environ.get("SNAPTITLE_DATABASE_PATH")
     database_path_raw = env_db or data.get("database_path", "data/snaptitle.db")
-    database_path = Path(database_path_raw)
+    database_path = Path(os.path.expanduser(os.path.expandvars(str(database_path_raw))))
 
     # Popup settings
     env_popup = os.environ.get("SNAPTITLE_SHOW_POPUP")
