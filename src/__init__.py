@@ -20,6 +20,8 @@ from .ocr import (
     extract_text_from_image,
     has_meaningful_text,
     deduplicate_lines,
+    binarize_image,
+    preprocess_image_for_ocr,
 )
 from .llm import (
     generate_title_from_text,
@@ -29,6 +31,9 @@ from .llm import (
 )
 from .vlm import (
     generate_caption_from_image,
+)
+from .gemini import (
+    generate_title_and_caption_with_gemini,
 )
 from .popup import (
     ScreenshotPopup,
@@ -56,11 +61,14 @@ __all__ = [
     "extract_text_from_image",
     "has_meaningful_text",
     "deduplicate_lines",
+    "binarize_image",
+    "preprocess_image_for_ocr",
     "generate_title_from_text",
     "generate_disambiguated_title",
     "clean_llm_response",
     "redact_sensitive_info",
     "generate_caption_from_image",
+    "generate_title_and_caption_with_gemini",
     "ScreenshotPopup",
     "PopupManager",
     "DatabaseManager",

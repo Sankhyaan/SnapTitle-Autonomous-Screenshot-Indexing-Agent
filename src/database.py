@@ -1,6 +1,7 @@
 """SQLite database storage and FTS5 full-text search index for screenshot history and undo."""
 
 import os
+import re
 import sqlite3
 import logging
 from datetime import datetime
@@ -26,70 +27,73 @@ class DatabaseManager:
         conn.row_factory = sqlite3.Row
         return conn
 
-    def _init_db(self):
-        """Initialize database schema with screenshots table and FTS5 full-text search index."""
+    def _init_db(self) -> None:
+        """Initialize the SQLite database schema with FTS5 virtual table for full-text search."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
-            
-            # Main screenshots table
+
+            # Main metadata table
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS screenshots (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     original_filename TEXT NOT NULL,
                     final_filename TEXT NOT NULL,
-                    file_path TEXT NOT NULL,
+                    file_path TEXT NOT NULL UNIQUE,
                     title TEXT NOT NULL,
                     extracted_content TEXT,
-                    capture_date TEXT NOT NULL,
+                    capture_date TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     is_reverted INTEGER DEFAULT 0
                 );
             """)
 
-            # Optimization indices on frequently filtered columns
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_screenshots_date ON screenshots(capture_date);")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_screenshots_reverted ON screenshots(is_reverted);")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_screenshots_created ON screenshots(created_at);")
+            # SQLite FTS5 Full-Text Search Virtual Table
+            cursor.execute("""
+                CREATE VIRTUAL TABLE IF NOT EXISTS screenshots_fts USING fts5(
+                    title,
+                    extracted_content,
+                    final_filename,
+                    original_filename,
+                    content='screenshots',
+                    content_rowid='id'
+                );
+            """)
 
-            # FTS5 Virtual Table for full-text search across title, content, and filename
-            try:
-                cursor.execute("""
-                    CREATE VIRTUAL TABLE IF NOT EXISTS screenshots_fts USING fts5(
-                        title,
-                        extracted_content,
-                        final_filename,
-                        content='screenshots',
-                        content_rowid='id'
-                    );
-                """)
+            # Triggers to keep FTS5 in sync with screenshots table
+            cursor.execute("""
+                CREATE TRIGGER IF NOT EXISTS screenshots_ai AFTER INSERT ON screenshots BEGIN
+                    INSERT INTO screenshots_fts(rowid, title, extracted_content, final_filename, original_filename)
+                    VALUES (new.id, new.title, new.extracted_content, new.final_filename, new.original_filename);
+                END;
+            """)
 
-                # Triggers to keep FTS5 table automatically in sync with screenshots table
-                cursor.execute("""
-                    CREATE TRIGGER IF NOT EXISTS screenshots_ai AFTER INSERT ON screenshots BEGIN
-                        INSERT INTO screenshots_fts(rowid, title, extracted_content, final_filename)
-                        VALUES (new.id, new.title, new.extracted_content, new.final_filename);
-                    END;
-                """)
-                cursor.execute("""
-                    CREATE TRIGGER IF NOT EXISTS screenshots_ad AFTER DELETE ON screenshots BEGIN
-                        INSERT INTO screenshots_fts(screenshots_fts, rowid, title, extracted_content, final_filename)
-                        VALUES('delete', old.id, old.title, old.extracted_content, old.final_filename);
-                    END;
-                """)
-                cursor.execute("""
-                    CREATE TRIGGER IF NOT EXISTS screenshots_au AFTER UPDATE ON screenshots BEGIN
-                        INSERT INTO screenshots_fts(screenshots_fts, rowid, title, extracted_content, final_filename)
-                        VALUES('delete', old.id, old.title, old.extracted_content, old.final_filename);
-                        INSERT INTO screenshots_fts(rowid, title, extracted_content, final_filename)
-                        VALUES (new.id, new.title, new.extracted_content, new.final_filename);
-                    END;
-                """)
-            except sqlite3.OperationalError as e:
-                logger.warning(f"FTS5 virtual table initialization issue: {e}. Falling back to standard queries.")
+            cursor.execute("""
+                CREATE TRIGGER IF NOT EXISTS screenshots_ad AFTER DELETE ON screenshots BEGIN
+                    INSERT INTO screenshots_fts(screenshots_fts, rowid, title, extracted_content, final_filename, original_filename)
+                    VALUES ('delete', old.id, old.title, old.extracted_content, old.final_filename, old.original_filename);
+                END;
+            """)
+
+            cursor.execute("""
+                CREATE TRIGGER IF NOT EXISTS screenshots_au AFTER UPDATE ON screenshots BEGIN
+                    INSERT INTO screenshots_fts(screenshots_fts, rowid, title, extracted_content, final_filename, original_filename)
+                    VALUES ('delete', old.id, old.title, old.extracted_content, old.final_filename, old.original_filename);
+                    INSERT INTO screenshots_fts(rowid, title, extracted_content, final_filename, original_filename)
+                    VALUES (new.id, new.title, new.extracted_content, new.final_filename, new.original_filename);
+                END;
+            """)
+
+            # Index for fast undo queries and date range filtering
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_screenshots_created_at ON screenshots(created_at DESC);
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_screenshots_capture_date ON screenshots(capture_date);
+            """)
 
             conn.commit()
 
-    def log_screenshot(
+    def record_screenshot(
         self,
         original_filename: str,
         final_filename: str,
@@ -98,37 +102,32 @@ class DatabaseManager:
         extracted_content: Optional[str] = None,
         capture_date: Optional[str] = None
     ) -> int:
-        """Insert a newly processed screenshot into the database index.
+        """Record a newly renamed screenshot in the database and FTS5 index.
 
         Args:
-            original_filename: Original file name before renaming.
-            final_filename: Renamed destination file name.
-            file_path: Full path to the renamed file.
-            title: AI-generated or user-edited title.
+            original_filename: Original name before rename.
+            final_filename: Final renamed name on disk.
+            file_path: Absolute path to the renamed file.
+            title: Semantic title extracted by OCR/VLM/LLM.
             extracted_content: Extracted OCR text or VLM caption.
-            capture_date: Capture date formatted as YYYY-MM-DD.
+            capture_date: Formatted date string (YYYY-MM-DD or DD-MM-YYYY).
 
         Returns:
-            int: Primary key ID of the inserted record.
+            int: Inserted row ID.
         """
         date_str = capture_date or datetime.now().strftime("%Y-%m-%d")
-        content_str = (extracted_content or "").strip()
+        content_str = extracted_content.strip() if extracted_content else ""
 
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""
                 INSERT INTO screenshots (
-                    original_filename,
-                    final_filename,
-                    file_path,
-                    title,
-                    extracted_content,
-                    capture_date
+                    original_filename, final_filename, file_path, title, extracted_content, capture_date
                 ) VALUES (?, ?, ?, ?, ?, ?);
             """, (
                 original_filename,
                 final_filename,
-                str(file_path.resolve()),
+                str(Path(file_path).resolve()),
                 title,
                 content_str,
                 date_str
@@ -137,6 +136,9 @@ class DatabaseManager:
             record_id = cursor.lastrowid or 0
             logger.info(f"Logged screenshot to database [ID={record_id}]: '{final_filename}'")
             return record_id
+
+    # Alias for API backwards compatibility
+    log_screenshot = record_screenshot
 
     def search(self, query: str, limit: int = 20) -> List[Dict[str, Any]]:
         """Search screenshot database for matching query text using FTS5 (or LIKE fallback).
@@ -159,7 +161,8 @@ class DatabaseManager:
             cursor = conn.cursor()
 
             # 1. Try SQLite FTS5 MATCH query (AND match first, then OR match)
-            tokens = [t.replace('"', '').strip() for t in cleaned_query.split() if t.replace('"', '').strip()]
+            tokens = [re.sub(r'[^\w\s-]', '', t).strip() for t in cleaned_query.split()]
+            tokens = [t for t in tokens if t]
             if tokens:
                 try:
                     # 1a. AND match across all tokens
