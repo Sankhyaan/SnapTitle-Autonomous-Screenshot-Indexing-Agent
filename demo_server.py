@@ -11,7 +11,7 @@ import webbrowser
 from datetime import datetime
 from pathlib import Path
 from typing import Tuple, Optional, Dict, Any
-from http.server import HTTPServer, SimpleHTTPRequestHandler
+from http.server import HTTPServer, ThreadingHTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 
 # Project Root
@@ -33,6 +33,13 @@ class SnapTitleDemoHandler(SimpleHTTPRequestHandler):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(WEB_DEMO_DIR), **kwargs)
+
+    def end_headers(self):
+        """Inject high-performance caching headers for static assets."""
+        if any(self.path.endswith(ext) for ext in ('.js', '.css', '.png', '.jpg', '.jpeg', '.svg', '.ico', '.woff2', '.webp')):
+            self.send_header("Cache-Control", "public, max-age=86400, immutable")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        super().end_headers()
 
     def do_GET(self):
         parsed = urlparse(self.path)
@@ -342,16 +349,16 @@ class SnapTitleDemoHandler(SimpleHTTPRequestHandler):
 
 
 def run_server(host: str = "0.0.0.0", port: int = 8081, open_browser: bool = False):
-    """Start HTTP server. Binds to 0.0.0.0 for cloud deployment compatibility."""
+    """Start multi-threaded HTTP server. Binds to 0.0.0.0 for cloud deployment compatibility."""
     server_address = (host, port)
     
     try:
-        httpd = HTTPServer(server_address, SnapTitleDemoHandler)
+        httpd = ThreadingHTTPServer(server_address, SnapTitleDemoHandler)
     except OSError:
         logger.warning(f"Port {port} in use, trying next available port...")
         port += 1
         server_address = (host, port)
-        httpd = HTTPServer(server_address, SnapTitleDemoHandler)
+        httpd = ThreadingHTTPServer(server_address, SnapTitleDemoHandler)
 
     display_url = f"http://127.0.0.1:{port}" if host == "0.0.0.0" else f"http://{host}:{port}"
     logger.info("=" * 60)
