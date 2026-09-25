@@ -341,9 +341,8 @@ class SnapTitleDemoHandler(SimpleHTTPRequestHandler):
         self._handle_api_search("")
 
 
-def run_server(port: int = 8080, open_browser: bool = True):
+def run_server(host: str = "0.0.0.0", port: int = 8081, open_browser: bool = False):
     """Start HTTP server. Binds to 0.0.0.0 for cloud deployment compatibility."""
-    host = "0.0.0.0"  # bind to all interfaces so cloud platforms can route traffic
     server_address = (host, port)
     
     try:
@@ -361,7 +360,10 @@ def run_server(port: int = 8080, open_browser: bool = True):
     logger.info("=" * 60)
 
     if open_browser:
-        webbrowser.open(display_url)
+        try:
+            webbrowser.open(display_url)
+        except Exception:
+            pass
 
     try:
         httpd.serve_forever()
@@ -371,13 +373,14 @@ def run_server(port: int = 8080, open_browser: bool = True):
 
 
 if __name__ == "__main__":
-    # Cloud platforms (Render, Railway, Fly.io) inject PORT as an env variable
-    default_port = int(os.environ.get("PORT", 8080))
-    is_cloud = os.environ.get("RENDER") or os.environ.get("RAILWAY_ENVIRONMENT") or os.environ.get("FLY_APP_NAME")
+    # Cloud platforms (AWS, Render, Railway, Fly.io) inject PORT as an env variable
+    default_port = int(os.environ.get("PORT", 8081))
+    is_cloud = os.environ.get("RENDER") or os.environ.get("RAILWAY_ENVIRONMENT") or os.environ.get("FLY_APP_NAME") or os.environ.get("AWS_EXECUTION_ENV")
 
     parser = argparse.ArgumentParser(description="SnapTitle Interactive Visual Demo Server")
-    parser.add_argument("--port", type=int, default=default_port, help="Port to bind server (default: $PORT or 8080)")
-    parser.add_argument("--no-browser", action="store_true", default=bool(is_cloud), help="Do not automatically open browser")
+    parser.add_argument("--host", type=str, default="0.0.0.0", help="Host address to bind (default: 0.0.0.0)")
+    parser.add_argument("--port", type=int, default=default_port, help="Port to bind server (default: 8081)")
+    parser.add_argument("--no-browser", action="store_true", default=True, help="Do not automatically open browser")
     args = parser.parse_args()
 
-    run_server(port=args.port, open_browser=not args.no_browser)
+    run_server(host=args.host, port=args.port, open_browser=False if is_cloud or args.no_browser else True)

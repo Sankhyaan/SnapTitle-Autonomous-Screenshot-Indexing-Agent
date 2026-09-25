@@ -1,14 +1,14 @@
 # SnapTitle 📸
 ### Autonomous Multimodal Screenshot Indexing & Semantic Renaming Agent
 
-[![Live AWS Demo](https://img.shields.io/badge/Live%20Demo-AWS%20EC2%20(Port%208081)-FF9900?style=for-the-badge&logo=amazon-aws&logoColor=white)](http://65.2.37.39:8081/)
+[![Live AWS Demo](https://img.shields.io/badge/Live%20Demo-AWS%20EC2%20(Port%208081)-FF9900?style=for-the-badge&logo=amazon-aws&logoColor=white)](http://13.203.136.117:8081/)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![AI Provider](https://img.shields.io/badge/AI%20Provider-Gemini%20%7C%20Ollama-orange.svg?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev/)
 [![Search](https://img.shields.io/badge/Search-SQLite%20FTS5-green.svg?style=for-the-badge&logo=sqlite&logoColor=white)](https://www.sqlite.org/fts5.html)
 [![License](https://img.shields.io/badge/License-MIT-purple.svg?style=for-the-badge)](LICENSE)
 
-> 🌐 **Live Interactive Web Visualizer (AWS EC2)**: [http://65.2.37.39:8081](http://65.2.37.39:8081/)  
-> ⚡ **Live Status Endpoint**: [http://65.2.37.39:8081/api/status](http://65.2.37.39:8081/api/status)
+> 🌐 **Live Interactive Web Visualizer (AWS EC2)**: [http://13.203.136.117:8081](http://13.203.136.117:8081/)  
+> ⚡ **Live Status Endpoint**: [http://13.203.136.117:8081/api/status](http://13.203.136.117:8081/api/status)
 
 **SnapTitle** is an autonomous desktop background agent that intercepts screenshot creation events in real time, extracts visual and OCR context using **Google Gemini Multimodal Vision** or **Local Ollama Models**, intelligently generates clean semantic filenames, and indexes all visual text into a local **SQLite FTS5 Full-Text Search** database.
 
